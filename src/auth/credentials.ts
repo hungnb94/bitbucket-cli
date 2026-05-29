@@ -12,11 +12,15 @@ type BitbucketUserResponse = {
   account_id: string
 }
 
-async function fetchUser(apiToken: string): Promise<BitbucketUserResponse> {
+function buildBasicAuth(email: string, apiToken: string): string {
+  return 'Basic ' + Buffer.from(`${email}:${apiToken}`).toString('base64')
+}
+
+async function fetchUser(email: string, apiToken: string): Promise<BitbucketUserResponse> {
   const response = await axios.get<BitbucketUserResponse>(
     'https://api.bitbucket.org/2.0/user',
     {
-      headers: { Authorization: `Bearer ${apiToken}` },
+      headers: { Authorization: buildBasicAuth(email, apiToken) },
       timeout: 10000,
     }
   )
@@ -32,11 +36,11 @@ function toUserInfo(data: BitbucketUserResponse): UserInfo {
 }
 
 export async function validateCredentials(creds: {
-  username: string
+  email: string
   apiToken: string
 }): Promise<UserInfo> {
   try {
-    return toUserInfo(await fetchUser(creds.apiToken))
+    return toUserInfo(await fetchUser(creds.email, creds.apiToken))
   } catch (error) {
     if (!axios.isAxiosError(error)) throw error
 
@@ -46,11 +50,11 @@ export async function validateCredentials(creds: {
     }
     if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
       try {
-        return toUserInfo(await fetchUser(creds.apiToken))
+        return toUserInfo(await fetchUser(creds.email, creds.apiToken))
       } catch {
         throw new Error('Connection failed after retry. Check your network connection.')
       }
     }
-    throw new Error(error.message)
+    throw error
   }
 }

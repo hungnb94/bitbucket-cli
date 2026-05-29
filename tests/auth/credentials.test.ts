@@ -7,7 +7,8 @@ const mockedAxios = vi.mocked(axios, true)
 
 const { validateCredentials } = await import('../../src/auth/credentials.js')
 
-const mockCreds = { username: 'johndoe', apiToken: 'valid-token' }
+const mockCreds = { email: 'user@example.com', apiToken: 'valid-token' }
+const expectedAuth = 'Basic ' + Buffer.from('user@example.com:valid-token').toString('base64')
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -47,7 +48,7 @@ describe('validateCredentials', () => {
     expect(mockedAxios.get).toHaveBeenCalledWith(
       'https://api.bitbucket.org/2.0/user',
       expect.objectContaining({
-        headers: { Authorization: 'Bearer valid-token' },
+        headers: { Authorization: expectedAuth },
         timeout: 10000,
       })
     )
@@ -69,6 +70,20 @@ describe('validateCredentials', () => {
 
   it('retries once on timeout and returns result', async () => {
     const timeoutError = makeAxiosError(null, 'ECONNABORTED')
+    mockedAxios.get = vi.fn()
+      .mockRejectedValueOnce(timeoutError)
+      .mockResolvedValueOnce({
+        data: { username: 'johndoe', display_name: 'John Doe', account_id: '557058:xxxx' },
+      })
+
+    const result = await validateCredentials(mockCreds)
+
+    expect(result.username).toBe('johndoe')
+    expect(mockedAxios.get).toHaveBeenCalledTimes(2)
+  })
+
+  it('retries once on ETIMEDOUT and returns result', async () => {
+    const timeoutError = makeAxiosError(null, 'ETIMEDOUT')
     mockedAxios.get = vi.fn()
       .mockRejectedValueOnce(timeoutError)
       .mockResolvedValueOnce({
