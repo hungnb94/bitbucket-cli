@@ -138,6 +138,7 @@ saveCredentials(creds: Credentials): void
 clearCredentials(): void
 
 // src/auth/credentials.ts
+// Calls GET https://api.bitbucket.org/2.0/user with Bearer token to verify
 validateCredentials(creds: Credentials): Promise<UserInfo>
 
 // src/auth/index.ts
