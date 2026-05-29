@@ -51,7 +51,13 @@ export async function validateCredentials(creds: {
     if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
       try {
         return toUserInfo(await fetchUser(creds.email, creds.apiToken))
-      } catch {
+      } catch (retryError) {
+        if (axios.isAxiosError(retryError)) {
+          if (retryError.response?.status === 401) throw new Error('401 Unauthorized')
+          if (retryError.response?.status === 403) {
+            throw new Error('403 Forbidden: token missing required scopes, check your token scopes')
+          }
+        }
         throw new Error('Connection failed after retry. Check your network connection.')
       }
     }

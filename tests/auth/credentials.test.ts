@@ -105,6 +105,16 @@ describe('validateCredentials', () => {
     )
   })
 
+  it('throws auth error when retry gets 401', async () => {
+    const timeoutError = makeAxiosError(null, 'ECONNABORTED')
+    const authError = makeAxiosError(401)
+    mockedAxios.get = vi.fn()
+      .mockRejectedValueOnce(timeoutError)
+      .mockRejectedValueOnce(authError)
+
+    await expect(validateCredentials(mockCreds)).rejects.toThrow('401 Unauthorized')
+  })
+
   it('re-throws non-axios errors as-is', async () => {
     const unknownError = new Error('something broke')
     mockedAxios.get = vi.fn().mockRejectedValue(unknownError)
