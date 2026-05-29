@@ -1,6 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
-// Module-level mock data — shared across the mock and the imported module
 const mockData: Record<string, unknown> = {}
 const mockPath = '/mock/.config/bitbucket-cli/config.json'
 
@@ -30,72 +29,37 @@ describe('getCredentials', () => {
     expect(getCredentials()).toBeNull()
   })
 
-  it('returns null when username is missing', () => {
+  it('returns null when email is missing', () => {
     mockData['apiToken'] = 'token'
-    mockData['defaultWorkspace'] = 'ws'
     expect(getCredentials()).toBeNull()
   })
 
   it('returns null when apiToken is missing', () => {
-    mockData['username'] = 'johndoe'
-    mockData['defaultWorkspace'] = 'ws'
+    mockData['email'] = 'user@example.com'
     expect(getCredentials()).toBeNull()
   })
 
-  it('returns null when defaultWorkspace is missing', () => {
-    mockData['username'] = 'johndoe'
-    mockData['apiToken'] = 'token'
-    expect(getCredentials()).toBeNull()
-  })
-
-  it('returns full credentials when all required fields are present', () => {
-    mockData['username'] = 'johndoe'
+  it('returns credentials when both fields are present', () => {
+    mockData['email'] = 'user@example.com'
     mockData['apiToken'] = 'my-token'
-    mockData['defaultWorkspace'] = 'my-team'
     expect(getCredentials()).toEqual({
-      username: 'johndoe',
+      email: 'user@example.com',
       apiToken: 'my-token',
-      defaultWorkspace: 'my-team',
-      defaultRepo: undefined,
-    })
-  })
-
-  it('includes defaultRepo when present', () => {
-    mockData['username'] = 'johndoe'
-    mockData['apiToken'] = 'my-token'
-    mockData['defaultWorkspace'] = 'my-team'
-    mockData['defaultRepo'] = 'my-project'
-    expect(getCredentials()).toEqual({
-      username: 'johndoe',
-      apiToken: 'my-token',
-      defaultWorkspace: 'my-team',
-      defaultRepo: 'my-project',
     })
   })
 })
 
 describe('saveCredentials', () => {
-  it('saves all required fields', () => {
-    saveCredentials({ username: 'johndoe', apiToken: 'token', defaultWorkspace: 'ws' })
-    expect(mockData['username']).toBe('johndoe')
+  it('saves email and apiToken', () => {
+    saveCredentials({ email: 'user@example.com', apiToken: 'token' })
+    expect(mockData['email']).toBe('user@example.com')
     expect(mockData['apiToken']).toBe('token')
-    expect(mockData['defaultWorkspace']).toBe('ws')
-  })
-
-  it('saves defaultRepo when provided', () => {
-    saveCredentials({ username: 'johndoe', apiToken: 'token', defaultWorkspace: 'ws', defaultRepo: 'repo' })
-    expect(mockData['defaultRepo']).toBe('repo')
-  })
-
-  it('does not save defaultRepo when undefined', () => {
-    saveCredentials({ username: 'johndoe', apiToken: 'token', defaultWorkspace: 'ws' })
-    expect(mockData['defaultRepo']).toBeUndefined()
   })
 })
 
 describe('clearCredentials', () => {
   it('removes all stored data', () => {
-    mockData['username'] = 'johndoe'
+    mockData['email'] = 'user@example.com'
     mockData['apiToken'] = 'token'
     clearCredentials()
     expect(Object.keys(mockData)).toHaveLength(0)
@@ -109,19 +73,20 @@ describe('getConfigPath', () => {
 })
 
 describe('env var override', () => {
-  it('uses BITBUCKET_USERNAME and BITBUCKET_API_TOKEN over config file values', () => {
-    mockData['username'] = 'from-config'
+  afterEach(() => {
+    delete process.env.BITBUCKET_EMAIL
+    delete process.env.BITBUCKET_API_TOKEN
+  })
+
+  it('uses BITBUCKET_EMAIL and BITBUCKET_API_TOKEN over config file values', () => {
+    mockData['email'] = 'config@example.com'
     mockData['apiToken'] = 'config-token'
-    mockData['defaultWorkspace'] = 'ws'
-    process.env.BITBUCKET_USERNAME = 'from-env'
+    process.env.BITBUCKET_EMAIL = 'env@example.com'
     process.env.BITBUCKET_API_TOKEN = 'env-token'
 
     const creds = getCredentials()
 
-    expect(creds?.username).toBe('from-env')
+    expect(creds?.email).toBe('env@example.com')
     expect(creds?.apiToken).toBe('env-token')
-
-    delete process.env.BITBUCKET_USERNAME
-    delete process.env.BITBUCKET_API_TOKEN
   })
 })

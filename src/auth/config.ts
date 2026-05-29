@@ -4,18 +4,11 @@ import path from 'path'
 import fs from 'fs'
 
 export type Credentials = {
-  username: string
+  email: string
   apiToken: string
-  defaultWorkspace: string
-  defaultRepo?: string
 }
 
-type Schema = {
-  username: string
-  apiToken: string
-  defaultWorkspace: string
-  defaultRepo: string
-}
+type Schema = Credentials
 
 const store = new Conf<Schema>({
   projectName: 'bitbucket-cli',
@@ -23,24 +16,15 @@ const store = new Conf<Schema>({
 })
 
 export function getCredentials(): Credentials | null {
-  // Environment variables take precedence over config file (useful for CI)
-  const username = process.env.BITBUCKET_USERNAME ?? (store.get('username') as string | undefined)
+  const email = process.env.BITBUCKET_EMAIL ?? (store.get('email') as string | undefined)
   const apiToken = process.env.BITBUCKET_API_TOKEN ?? (store.get('apiToken') as string | undefined)
-  const defaultWorkspace = store.get('defaultWorkspace') as string | undefined
-  if (!username || !apiToken || !defaultWorkspace) return null
-  return {
-    username,
-    apiToken,
-    defaultWorkspace,
-    defaultRepo: store.get('defaultRepo') as string | undefined,
-  }
+  if (!email || !apiToken) return null
+  return { email, apiToken }
 }
 
 export function saveCredentials(creds: Credentials): void {
-  store.set('username', creds.username)
+  store.set('email', creds.email)
   store.set('apiToken', creds.apiToken)
-  store.set('defaultWorkspace', creds.defaultWorkspace)
-  if (creds.defaultRepo) store.set('defaultRepo', creds.defaultRepo)
   try {
     fs.chmodSync(store.path, 0o600)
   } catch {
