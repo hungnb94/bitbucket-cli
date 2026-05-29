@@ -26,41 +26,41 @@ bitbucket auth whoami    # prints current user info from Bitbucket API
 ```
 $ bitbucket auth login
 
-ℹ  Bạn cần tạo API token trên Atlassian trước khi tiếp tục.
+ℹ  You need to create an API token on Atlassian before continuing.
 
-   Truy cập: https://id.atlassian.com/manage-profile/security/api-tokens
+   Visit: https://id.atlassian.com/manage-profile/security/api-tokens
 
-   Bước tạo token:
-     1. Chọn "Create API token with scopes"
-     2. Đặt tên và ngày hết hạn
-     3. Chọn ứng dụng: Bitbucket
-     4. Chọn scopes theo hướng dẫn bên dưới
-     5. Sao chép token ngay — token chỉ hiển thị một lần
+   Steps to create a token:
+     1. Select "Create API token with scopes"
+     2. Set a name and expiration date
+     3. Select application: Bitbucket
+     4. Select scopes as guided below
+     5. Copy the token immediately — it is only shown once
 
-   Scopes tối thiểu cần cấp:
-     ✓ User: Read                (để lấy thông tin tài khoản)
-     ✓ Repositories: Read        (để đọc repo, xem diff)
-     ✓ Pull requests: Read       (để list/view PR, comment)
-     ✓ Pull requests: Write      (để approve/decline/merge PR)
+   Minimum required scopes:
+     ✓ User: Read                (to fetch account info)
+     ✓ Repositories: Read        (to read repos, view diffs)
+     ✓ Pull requests: Read       (to list/view PRs, post comments)
+     ✓ Pull requests: Write      (to approve/decline/merge PRs)
 
-   Scopes tuỳ chọn:
-     • Repositories: Write       (nếu muốn tạo PR sau này)
-     • Pipelines: Read           (nếu muốn xem CI/CD)
+   Optional scopes:
+     • Repositories: Write       (if you want to create PRs later)
+     • Pipelines: Read           (if you want to view CI/CD)
 
 ? Bitbucket username: johndoe
 ? API token: **********************
 ? Default workspace: my-team
 ? Default repo (optional): my-project
 
-  Đang xác minh credentials...
-✓ Xác minh thành công — chào john.doe@example.com
-✓ Credentials đã lưu vào ~/.config/bitbucket-cli/config.json
+  Verifying credentials...
+✓ Verified — welcome john.doe@example.com
+✓ Credentials saved to ~/.config/bitbucket-cli/config.json
 ```
 
 On failure:
 ```
-✗ Xác minh thất bại — 401 Unauthorized
-  Kiểm tra lại username và API token, sau đó chạy lại bitbucket auth login
+✗ Verification failed — 401 Unauthorized
+  Check your username and API token, then run bitbucket auth login
 ```
 
 ---
@@ -70,8 +70,8 @@ On failure:
 ```
 $ bitbucket auth logout
 
-? Xoá credentials đã lưu? (y/N) y
-✓ Đã xoá ~/.config/bitbucket-cli/config.json
+? Remove saved credentials? (y/N) y
+✓ Removed ~/.config/bitbucket-cli/config.json
 ```
 
 ---
@@ -89,7 +89,7 @@ $ bitbucket auth whoami
 
 If not logged in:
 ```
-✗ Chưa có credentials. Chạy: bitbucket auth login
+✗ Not logged in. Run: bitbucket auth login
 ```
 
 ---
@@ -171,7 +171,7 @@ type UserInfo = {
 | 401 Unauthorized | Print error, prompt to re-run `auth login` |
 | Network timeout | Retry once, then fail with clear message |
 | Config not found | Prompt to run `auth login` |
-| Token missing required scopes | API returns 403 — show "token thiếu quyền, kiểm tra lại scopes" |
+| Token missing required scopes | API returns 403 — show "token missing required scopes, check your token scopes" |
 
 ---
 

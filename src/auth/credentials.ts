@@ -42,13 +42,13 @@ export async function validateCredentials(creds: {
 
     if (error.response?.status === 401) throw new Error('401 Unauthorized')
     if (error.response?.status === 403) {
-      throw new Error('403 Forbidden: token thiếu quyền, kiểm tra lại scopes')
+      throw new Error('403 Forbidden: token missing required scopes, check your token scopes')
     }
     if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
       try {
         return toUserInfo(await fetchUser(creds.apiToken))
       } catch {
-        throw new Error('Kết nối thất bại sau khi thử lại. Kiểm tra kết nối mạng.')
+        throw new Error('Connection failed after retry. Check your network connection.')
       }
     }
     throw new Error(error.message)

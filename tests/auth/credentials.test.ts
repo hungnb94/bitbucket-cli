@@ -63,7 +63,7 @@ describe('validateCredentials', () => {
     mockedAxios.get = vi.fn().mockRejectedValue(makeAxiosError(403))
 
     await expect(validateCredentials(mockCreds)).rejects.toThrow(
-      'token thiếu quyền, kiểm tra lại scopes'
+      'token missing required scopes, check your token scopes'
     )
   })
 
@@ -86,7 +86,7 @@ describe('validateCredentials', () => {
     mockedAxios.get = vi.fn().mockRejectedValue(timeoutError)
 
     await expect(validateCredentials(mockCreds)).rejects.toThrow(
-      'Kết nối thất bại sau khi thử lại'
+      'Connection failed after retry'
     )
   })
 

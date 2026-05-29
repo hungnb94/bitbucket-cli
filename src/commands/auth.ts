@@ -11,25 +11,25 @@ import {
 } from '../auth/index.js'
 
 function printLoginGuide(): void {
-  console.log(chalk.blue('ℹ') + '  Bạn cần tạo API token trên Atlassian trước khi tiếp tục.\n')
-  console.log('   Truy cập: ' + chalk.cyan('https://id.atlassian.com/manage-profile/security/api-tokens'))
+  console.log(chalk.blue('ℹ') + '  You need to create an API token on Atlassian before continuing.\n')
+  console.log('   Visit: ' + chalk.cyan('https://id.atlassian.com/manage-profile/security/api-tokens'))
   console.log()
-  console.log('   Bước tạo token:')
-  console.log('     1. Chọn "Create API token with scopes"')
-  console.log('     2. Đặt tên và ngày hết hạn')
-  console.log('     3. Chọn ứng dụng: Bitbucket')
-  console.log('     4. Chọn scopes theo hướng dẫn bên dưới')
-  console.log('     5. Sao chép token ngay — token chỉ hiển thị một lần')
+  console.log('   Steps to create a token:')
+  console.log('     1. Select "Create API token with scopes"')
+  console.log('     2. Set a name and expiration date')
+  console.log('     3. Select application: Bitbucket')
+  console.log('     4. Select scopes as guided below')
+  console.log('     5. Copy the token immediately — it is only shown once')
   console.log()
-  console.log('   Scopes tối thiểu cần cấp:')
-  console.log('     ' + chalk.green('✓') + ' User: Read                (để lấy thông tin tài khoản)')
-  console.log('     ' + chalk.green('✓') + ' Repositories: Read        (để đọc repo, xem diff)')
-  console.log('     ' + chalk.green('✓') + ' Pull requests: Read       (để list/view PR, comment)')
-  console.log('     ' + chalk.green('✓') + ' Pull requests: Write      (để approve/decline/merge PR)')
+  console.log('   Minimum required scopes:')
+  console.log('     ' + chalk.green('✓') + ' User: Read                (to fetch account info)')
+  console.log('     ' + chalk.green('✓') + ' Repositories: Read        (to read repos, view diffs)')
+  console.log('     ' + chalk.green('✓') + ' Pull requests: Read       (to list/view PRs, post comments)')
+  console.log('     ' + chalk.green('✓') + ' Pull requests: Write      (to approve/decline/merge PRs)')
   console.log()
-  console.log('   Scopes tuỳ chọn:')
-  console.log('     • Repositories: Write       (nếu muốn tạo PR sau này)')
-  console.log('     • Pipelines: Read           (nếu muốn xem CI/CD)')
+  console.log('   Optional scopes:')
+  console.log('     • Repositories: Write       (if you want to create PRs later)')
+  console.log('     • Pipelines: Read           (if you want to view CI/CD)')
   console.log()
 }
 
@@ -47,23 +47,23 @@ export function createAuthCommand(): Command {
       const defaultWorkspace = await input({ message: 'Default workspace:' })
       const defaultRepoInput = await input({ message: 'Default repo (optional):', default: '' })
 
-      const spinner = ora('Đang xác minh credentials...').start()
+      const spinner = ora('Verifying credentials...').start()
       try {
         const userInfo = await validateCredentials({ username, apiToken })
-        spinner.succeed(`Xác minh thành công — chào ${userInfo.displayName}`)
+        spinner.succeed(`Verified — welcome ${userInfo.displayName}`)
         saveCredentials({
           username,
           apiToken,
           defaultWorkspace,
           defaultRepo: defaultRepoInput || undefined,
         })
-        console.log(chalk.green('✓') + ` Credentials đã lưu vào ${getConfigPath()}`)
+        console.log(chalk.green('✓') + ` Credentials saved to ${getConfigPath()}`)
       } catch (error) {
         spinner.fail(
-          'Xác minh thất bại — ' + (error instanceof Error ? error.message : 'Unknown error')
+          'Verification failed — ' + (error instanceof Error ? error.message : 'Unknown error')
         )
         console.log(
-          '  Kiểm tra lại username và API token, sau đó chạy lại ' +
+          '  Check your username and API token, then run ' +
           chalk.cyan('bitbucket auth login')
         )
         process.exit(1)
@@ -74,10 +74,10 @@ export function createAuthCommand(): Command {
     .command('logout')
     .description('Remove saved credentials')
     .action(async () => {
-      const confirmed = await confirm({ message: 'Xoá credentials đã lưu?', default: false })
+      const confirmed = await confirm({ message: 'Remove saved credentials?', default: false })
       if (confirmed) {
         clearCredentials()
-        console.log(chalk.green('✓') + ` Đã xoá ${getConfigPath()}`)
+        console.log(chalk.green('✓') + ` Removed ${getConfigPath()}`)
       }
     })
 
@@ -88,11 +88,11 @@ export function createAuthCommand(): Command {
       const creds = getCredentials()
       if (!creds) {
         console.error(
-          chalk.red('✗') + ' Chưa có credentials. Chạy: ' + chalk.cyan('bitbucket auth login')
+          chalk.red('✗') + ' Not logged in. Run: ' + chalk.cyan('bitbucket auth login')
         )
         process.exit(1)
       }
-      const spinner = ora('Đang lấy thông tin...').start()
+      const spinner = ora('Fetching user info...').start()
       try {
         const userInfo = await validateCredentials(creds)
         spinner.stop()
@@ -102,7 +102,7 @@ export function createAuthCommand(): Command {
         console.log('  Account ID:   ' + userInfo.accountId)
       } catch (error) {
         spinner.fail(
-          'Không thể lấy thông tin: ' + (error instanceof Error ? error.message : 'Unknown error')
+          'Failed to fetch user info: ' + (error instanceof Error ? error.message : 'Unknown error')
         )
         process.exit(1)
       }
