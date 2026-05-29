@@ -38,32 +38,25 @@ export function createAuthCommand(): Command {
 
   auth
     .command('login')
-    .description('Log in with your Atlassian API token')
+    .description('Log in with your Atlassian email and API token')
     .action(async () => {
       printLoginGuide()
 
-      const username = await input({ message: 'Bitbucket username:' })
+      const email = await input({ message: 'Email:' })
       const apiToken = await password({ message: 'API token:', mask: '*' })
-      const defaultWorkspace = await input({ message: 'Default workspace:' })
-      const defaultRepoInput = await input({ message: 'Default repo (optional):', default: '' })
 
       const spinner = ora('Verifying credentials...').start()
       try {
-        const userInfo = await validateCredentials({ username, apiToken })
+        const userInfo = await validateCredentials({ email, apiToken })
         spinner.succeed(`Verified — welcome ${userInfo.displayName}`)
-        saveCredentials({
-          username,
-          apiToken,
-          defaultWorkspace,
-          defaultRepo: defaultRepoInput || undefined,
-        })
+        saveCredentials({ email, apiToken })
         console.log(chalk.green('✓') + ` Credentials saved to ${getConfigPath()}`)
       } catch (error) {
         spinner.fail(
           'Verification failed — ' + (error instanceof Error ? error.message : 'Unknown error')
         )
         console.log(
-          '  Check your username and API token, then run ' +
+          '  Check your email and API token, then run ' +
           chalk.cyan('bitbucket auth login')
         )
         process.exit(1)

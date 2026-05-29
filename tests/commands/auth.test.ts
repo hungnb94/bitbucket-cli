@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { Command } from 'commander'
 
-// Mock auth module
 const mockGetCredentials = vi.fn()
 const mockSaveCredentials = vi.fn()
 const mockClearCredentials = vi.fn()
@@ -16,7 +15,6 @@ vi.mock('../../src/auth/index.js', () => ({
   getConfigPath: mockGetConfigPath,
 }))
 
-// Mock @inquirer/prompts
 const mockInput = vi.fn()
 const mockPassword = vi.fn()
 const mockConfirm = vi.fn()
@@ -27,7 +25,6 @@ vi.mock('@inquirer/prompts', () => ({
   confirm: mockConfirm,
 }))
 
-// Mock ora
 vi.mock('ora', () => ({
   default: vi.fn(() => ({
     start: vi.fn().mockReturnThis(),
@@ -52,10 +49,7 @@ async function runCommand(args: string[]): Promise<void> {
 
 describe('auth login', () => {
   it('saves credentials after successful validation', async () => {
-    mockInput
-      .mockResolvedValueOnce('johndoe')        // username
-      .mockResolvedValueOnce('my-team')        // workspace
-      .mockResolvedValueOnce('my-project')     // repo
+    mockInput.mockResolvedValueOnce('user@example.com')   // email
     mockPassword.mockResolvedValueOnce('my-token')
     mockValidateCredentials.mockResolvedValueOnce({
       username: 'johndoe',
@@ -66,41 +60,19 @@ describe('auth login', () => {
     await runCommand(['auth', 'login'])
 
     expect(mockSaveCredentials).toHaveBeenCalledWith({
-      username: 'johndoe',
+      email: 'user@example.com',
       apiToken: 'my-token',
-      defaultWorkspace: 'my-team',
-      defaultRepo: 'my-project',
     })
   })
 
   it('does not save credentials when validation fails', async () => {
-    mockInput
-      .mockResolvedValueOnce('johndoe')
-      .mockResolvedValueOnce('my-team')
-      .mockResolvedValueOnce('')
+    mockInput.mockResolvedValueOnce('user@example.com')
     mockPassword.mockResolvedValueOnce('bad-token')
     mockValidateCredentials.mockRejectedValueOnce(new Error('401 Unauthorized'))
 
     await expect(runCommand(['auth', 'login'])).rejects.toThrow()
 
     expect(mockSaveCredentials).not.toHaveBeenCalled()
-  })
-
-  it('saves undefined defaultRepo when repo input is empty', async () => {
-    mockInput
-      .mockResolvedValueOnce('johndoe')
-      .mockResolvedValueOnce('my-team')
-      .mockResolvedValueOnce('')             // empty repo
-    mockPassword.mockResolvedValueOnce('my-token')
-    mockValidateCredentials.mockResolvedValueOnce({
-      username: 'johndoe', displayName: 'John Doe', accountId: '557058:xxxx',
-    })
-
-    await runCommand(['auth', 'login'])
-
-    expect(mockSaveCredentials).toHaveBeenCalledWith(
-      expect.objectContaining({ defaultRepo: undefined })
-    )
   })
 })
 
@@ -124,9 +96,7 @@ describe('auth logout', () => {
 
 describe('auth whoami', () => {
   it('prints user info when credentials exist', async () => {
-    mockGetCredentials.mockReturnValueOnce({
-      username: 'johndoe', apiToken: 'token', defaultWorkspace: 'ws',
-    })
+    mockGetCredentials.mockReturnValueOnce({ email: 'user@example.com', apiToken: 'token' })
     mockValidateCredentials.mockResolvedValueOnce({
       username: 'johndoe',
       displayName: 'John Doe',
