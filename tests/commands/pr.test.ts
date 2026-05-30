@@ -148,6 +148,13 @@ describe('pr approve', () => {
     await runCommand(['pr', 'approve', '42'])
     expect(mockApprovePullRequest).not.toHaveBeenCalled()
   })
+
+  it('exits with 1 when approvePullRequest throws', async () => {
+    mockGetPullRequest.mockResolvedValue(MOCK_PR)
+    mockConfirm.mockResolvedValue(true)
+    mockApprovePullRequest.mockRejectedValue(new Error('403 Forbidden'))
+    await expect(runCommand(['pr', 'approve', '42'])).rejects.toThrow('process.exit(1)')
+  })
 })
 
 describe('pr decline', () => {
@@ -157,6 +164,13 @@ describe('pr decline', () => {
     mockDeclinePullRequest.mockResolvedValue(undefined)
     await runCommand(['pr', 'decline', '42'])
     expect(mockDeclinePullRequest).toHaveBeenCalledWith('myworkspace', 'myrepo', 42)
+  })
+
+  it('exits with 1 when declinePullRequest throws', async () => {
+    mockGetPullRequest.mockResolvedValue(MOCK_PR)
+    mockConfirm.mockResolvedValue(true)
+    mockDeclinePullRequest.mockRejectedValue(new Error('403 Forbidden'))
+    await expect(runCommand(['pr', 'decline', '42'])).rejects.toThrow('process.exit(1)')
   })
 })
 

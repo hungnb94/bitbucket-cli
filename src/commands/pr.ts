@@ -111,6 +111,7 @@ export function createPrCommand(): Command {
       const { workspace, repo } = getContext()
       const prId = parseId(id)
       const spinner = ora('Fetching pull request...').start()
+      let actionSpinner: ReturnType<typeof ora> | undefined
       try {
         const pullRequest = await getPullRequest(workspace, repo, prId)
         spinner.stop()
@@ -119,11 +120,14 @@ export function createPrCommand(): Command {
           default: false,
         })
         if (!confirmed) return
-        const approveSpinner = ora('Approving...').start()
+        actionSpinner = ora('Approving...').start()
         await approvePullRequest(workspace, repo, prId)
-        approveSpinner.succeed(`PR #${prId} approved`)
+        actionSpinner.succeed(`PR #${prId} approved`)
       } catch (error) {
-        console.error(chalk.red('✗') + ' ' + (error instanceof Error ? error.message : 'Unknown error'))
+        actionSpinner?.fail(error instanceof Error ? error.message : 'Unknown error')
+        if (!actionSpinner) {
+          spinner.fail(error instanceof Error ? error.message : 'Unknown error')
+        }
         process.exit(1)
       }
     })
@@ -137,6 +141,7 @@ export function createPrCommand(): Command {
       const { workspace, repo } = getContext()
       const prId = parseId(id)
       const spinner = ora('Fetching pull request...').start()
+      let actionSpinner: ReturnType<typeof ora> | undefined
       try {
         const pullRequest = await getPullRequest(workspace, repo, prId)
         spinner.stop()
@@ -145,11 +150,14 @@ export function createPrCommand(): Command {
           default: false,
         })
         if (!confirmed) return
-        const declineSpinner = ora('Declining...').start()
+        actionSpinner = ora('Declining...').start()
         await declinePullRequest(workspace, repo, prId)
-        declineSpinner.succeed(`PR #${prId} declined`)
+        actionSpinner.succeed(`PR #${prId} declined`)
       } catch (error) {
-        console.error(chalk.red('✗') + ' ' + (error instanceof Error ? error.message : 'Unknown error'))
+        actionSpinner?.fail(error instanceof Error ? error.message : 'Unknown error')
+        if (!actionSpinner) {
+          spinner.fail(error instanceof Error ? error.message : 'Unknown error')
+        }
         process.exit(1)
       }
     })
