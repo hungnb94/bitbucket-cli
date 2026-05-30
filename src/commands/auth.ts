@@ -1,5 +1,5 @@
 import { Command } from 'commander'
-import { input, password, confirm } from '@inquirer/prompts'
+import { input, password } from '@inquirer/prompts'
 import chalk from 'chalk'
 import ora from 'ora'
 import {
@@ -41,7 +41,10 @@ export function createAuthCommand(): Command {
   auth
     .command('login')
     .description('Log in with your Atlassian email and API token')
-    .action(async () => {
+    .option('--email <email>', 'Email (non-interactive)')
+    .option('--token <token>', 'API token (non-interactive)')
+    .option('--yes', 'Overwrite existing credentials without prompting')
+    .action(async (options) => {
       const state = getAuthState()
 
       if (state.source === 'env') {
@@ -53,17 +56,33 @@ export function createAuthCommand(): Command {
       }
 
       if (state.source === 'file') {
-        const reauth = await confirm({
-          message: `Already logged in as ${state.credentials.email}. Re-authenticate?`,
-          default: false,
-        })
-        if (!reauth) return
+        if (!options.yes) {
+          console.error(
+            chalk.red('✗') +
+            ` Already logged in as ${state.credentials.email}. Use --yes to overwrite.`
+          )
+          process.exit(1)
+        }
       }
 
-      printLoginGuide()
+      const hasEmail = !!options.email
+      const hasToken = !!options.token
+      if (hasEmail !== hasToken) {
+        console.error(chalk.red('✗') + ' --email and --token must be used together')
+        process.exit(1)
+      }
 
-      const email = (await input({ message: 'Email:' })).trim()
-      const apiToken = await password({ message: 'API token:', mask: '*' })
+      let email: string
+      let apiToken: string
+
+      if (hasEmail && hasToken) {
+        email = options.email as string
+        apiToken = options.token as string
+      } else {
+        printLoginGuide()
+        email = (await input({ message: 'Email:' })).trim()
+        apiToken = await password({ message: 'API token:', mask: '*' })
+      }
 
       const spinner = ora('Verifying credentials...').start()
       try {

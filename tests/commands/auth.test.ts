@@ -98,12 +98,25 @@ describe('auth login', () => {
     errorSpy.mockRestore()
   })
 
-  it('proceeds to login when already logged in and user confirms re-auth', async () => {
+  it('exits with error when already logged in and --yes is not provided', async () => {
     mockGetAuthState.mockReturnValueOnce({
       source: 'file',
       credentials: { email: 'file@example.com', apiToken: 'file-token' },
     })
-    mockConfirm.mockResolvedValueOnce(true)   // re-auth confirm
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    await expect(runCommand(['auth', 'login'])).rejects.toThrow('process.exit(1)')
+
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('--yes'))
+    expect(mockSaveCredentials).not.toHaveBeenCalled()
+    errorSpy.mockRestore()
+  })
+
+  it('proceeds to interactive login when already logged in with --yes', async () => {
+    mockGetAuthState.mockReturnValueOnce({
+      source: 'file',
+      credentials: { email: 'file@example.com', apiToken: 'file-token' },
+    })
     mockInput.mockResolvedValueOnce('file@example.com')
     mockPassword.mockResolvedValueOnce('new-token')
     mockValidateCredentials.mockResolvedValueOnce({
@@ -112,7 +125,7 @@ describe('auth login', () => {
       accountId: '557058:xxxx',
     })
 
-    await runCommand(['auth', 'login'])
+    await runCommand(['auth', 'login', '--yes'])
 
     expect(mockSaveCredentials).toHaveBeenCalledWith({
       email: 'file@example.com',
@@ -120,17 +133,71 @@ describe('auth login', () => {
     })
   })
 
-  it('aborts login when already logged in and user declines re-auth', async () => {
-    mockGetAuthState.mockReturnValueOnce({
-      source: 'file',
-      credentials: { email: 'file@example.com', apiToken: 'file-token' },
+  it('logs in non-interactively with --email and --token', async () => {
+    mockGetAuthState.mockReturnValueOnce({ source: 'none' })
+    mockValidateCredentials.mockResolvedValueOnce({
+      username: 'johndoe',
+      displayName: 'John Doe',
+      accountId: '557058:xxxx',
     })
-    mockConfirm.mockResolvedValueOnce(false)  // decline re-auth
 
-    await runCommand(['auth', 'login'])
+    await runCommand(['auth', 'login', '--email', 'user@example.com', '--token', 'my-token'])
 
     expect(mockInput).not.toHaveBeenCalled()
-    expect(mockSaveCredentials).not.toHaveBeenCalled()
+    expect(mockPassword).not.toHaveBeenCalled()
+    expect(mockSaveCredentials).toHaveBeenCalledWith({
+      email: 'user@example.com',
+      apiToken: 'my-token',
+    })
+  })
+
+  it('overwrites credentials non-interactively with --email --token --yes when already logged in', async () => {
+    mockGetAuthState.mockReturnValueOnce({
+      source: 'file',
+      credentials: { email: 'old@example.com', apiToken: 'old-token' },
+    })
+    mockValidateCredentials.mockResolvedValueOnce({
+      username: 'johndoe',
+      displayName: 'John Doe',
+      accountId: '557058:xxxx',
+    })
+
+    await runCommand(['auth', 'login', '--email', 'new@example.com', '--token', 'new-token', '--yes'])
+
+    expect(mockInput).not.toHaveBeenCalled()
+    expect(mockPassword).not.toHaveBeenCalled()
+    expect(mockSaveCredentials).toHaveBeenCalledWith({
+      email: 'new@example.com',
+      apiToken: 'new-token',
+    })
+  })
+
+  it('exits with error when --email is provided without --token', async () => {
+    mockGetAuthState.mockReturnValueOnce({ source: 'none' })
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    await expect(
+      runCommand(['auth', 'login', '--email', 'user@example.com'])
+    ).rejects.toThrow('process.exit(1)')
+
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.stringContaining('--email and --token must be used together')
+    )
+    errorSpy.mockRestore()
+  })
+
+  it('exits with error when --token is provided without --email', async () => {
+    mockGetAuthState.mockReturnValueOnce({ source: 'none' })
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    await expect(
+      runCommand(['auth', 'login', '--token', 'my-token'])
+    ).rejects.toThrow('process.exit(1)')
+
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.stringContaining('--email and --token must be used together')
+    )
+    errorSpy.mockRestore()
   })
 })
 
