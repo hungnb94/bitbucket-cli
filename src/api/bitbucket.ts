@@ -4,18 +4,6 @@ import type { PullRequest, DiffStat } from '../pr/types.js'
 
 const BASE_URL = 'https://api.bitbucket.org/2.0'
 
-export function createClient(): AxiosInstance {
-  const creds = getCredentials()
-  if (!creds) {
-    throw new Error('No credentials found. Run: bitbucket auth login')
-  }
-  return axios.create({
-    baseURL: BASE_URL,
-    headers: { Authorization: buildBasicAuth(creds.email, creds.apiToken) },
-    timeout: 15000,
-  })
-}
-
 function buildClient(): AxiosInstance {
   const creds = getCredentials()
   const headers: Record<string, string> = {}
@@ -172,10 +160,13 @@ export async function approvePullRequest(
   repo: string,
   id: number
 ): Promise<void> {
-  return withRetry(async () => {
+  try {
     const client = buildClient()
     await client.post(`/repositories/${workspace}/${repo}/pullrequests/${id}/approve`)
-  }, id)
+  } catch (error) {
+    if (axios.isAxiosError(error)) throwApiError(error, id)
+    throw error
+  }
 }
 
 export async function declinePullRequest(
@@ -183,10 +174,13 @@ export async function declinePullRequest(
   repo: string,
   id: number
 ): Promise<void> {
-  return withRetry(async () => {
+  try {
     const client = buildClient()
     await client.post(`/repositories/${workspace}/${repo}/pullrequests/${id}/decline`)
-  }, id)
+  } catch (error) {
+    if (axios.isAxiosError(error)) throwApiError(error, id)
+    throw error
+  }
 }
 
 export async function postComment(
@@ -196,10 +190,13 @@ export async function postComment(
   message: string,
   inline?: { path: string; line: number }
 ): Promise<void> {
-  return withRetry(async () => {
+  try {
     const client = buildClient()
     const body: Record<string, unknown> = { content: { raw: message } }
     if (inline) body.inline = { path: inline.path, to: inline.line }
     await client.post(`/repositories/${workspace}/${repo}/pullrequests/${id}/comments`, body)
-  }, id)
+  } catch (error) {
+    if (axios.isAxiosError(error)) throwApiError(error, id)
+    throw error
+  }
 }

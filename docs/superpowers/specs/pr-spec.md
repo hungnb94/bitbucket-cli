@@ -2,7 +2,7 @@
 
 **Date:** 2026-05-30  
 **Status:** Approved  
-**Branch:** feature/auth (next feature branch)
+**Branch:** feature/pr
 
 ---
 

@@ -1,4 +1,4 @@
-import { Command } from 'commander'
+import { Command, Option } from 'commander'
 import { confirm } from '@inquirer/prompts'
 import chalk from 'chalk'
 import ora from 'ora'
@@ -45,14 +45,21 @@ export function createPrCommand(): Command {
   pr
     .command('list')
     .description('List pull requests')
-    .option('--state <state>', 'Filter by state: open, merged, declined, all', 'open')
+    .addOption(
+      new Option('--state <state>', 'Filter by state').choices(['open', 'merged', 'declined', 'all']).default('open')
+    )
     .option('--limit <n>', 'Number of PRs to show', '20')
     .action(async (options) => {
       requireAuth()
       const { workspace, repo } = getContext()
+      const limit = parseInt(options.limit, 10)
+      if (isNaN(limit) || limit < 1) {
+        console.error(chalk.red('✗') + ' --limit must be a positive integer')
+        process.exit(1)
+      }
       const spinner = ora('Fetching pull requests...').start()
       try {
-        const prs = await listPullRequests(workspace, repo, options.state, parseInt(options.limit, 10))
+        const prs = await listPullRequests(workspace, repo, options.state, limit)
         spinner.stop()
         console.log(formatPrList(prs))
       } catch (error) {
