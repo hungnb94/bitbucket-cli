@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { Command } from 'commander'
 
+const mockGetAuthState = vi.fn()
 const mockGetCredentials = vi.fn()
 const mockSaveCredentials = vi.fn()
 const mockClearCredentials = vi.fn()
@@ -8,6 +9,7 @@ const mockValidateCredentials = vi.fn()
 const mockGetConfigPath = vi.fn().mockReturnValue('/mock/.config/bitbucket-cli/config.json')
 
 vi.mock('../../src/auth/index.js', () => ({
+  getAuthState: mockGetAuthState,
   getCredentials: mockGetCredentials,
   saveCredentials: mockSaveCredentials,
   clearCredentials: mockClearCredentials,
@@ -49,7 +51,8 @@ async function runCommand(args: string[]): Promise<void> {
 
 describe('auth login', () => {
   it('saves credentials after successful validation', async () => {
-    mockInput.mockResolvedValueOnce('user@example.com')   // email
+    mockGetAuthState.mockReturnValueOnce({ source: 'none' })
+    mockInput.mockResolvedValueOnce('user@example.com')
     mockPassword.mockResolvedValueOnce('my-token')
     mockValidateCredentials.mockResolvedValueOnce({
       username: 'johndoe',
@@ -66,12 +69,64 @@ describe('auth login', () => {
   })
 
   it('does not save credentials when validation fails', async () => {
+    mockGetAuthState.mockReturnValueOnce({ source: 'none' })
     mockInput.mockResolvedValueOnce('user@example.com')
     mockPassword.mockResolvedValueOnce('bad-token')
     mockValidateCredentials.mockRejectedValueOnce(new Error('401 Unauthorized'))
 
     await expect(runCommand(['auth', 'login'])).rejects.toThrow()
 
+    expect(mockSaveCredentials).not.toHaveBeenCalled()
+  })
+
+  it('exits with error when credentials are set via env vars', async () => {
+    mockGetAuthState.mockReturnValueOnce({
+      source: 'env',
+      credentials: { email: 'env@example.com', apiToken: 'env-token' },
+    })
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    await expect(runCommand(['auth', 'login'])).rejects.toThrow()
+
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.stringContaining('BITBUCKET_EMAIL')
+    )
+    expect(mockInput).not.toHaveBeenCalled()
+    errorSpy.mockRestore()
+  })
+
+  it('proceeds to login when already logged in and user confirms re-auth', async () => {
+    mockGetAuthState.mockReturnValueOnce({
+      source: 'file',
+      credentials: { email: 'file@example.com', apiToken: 'file-token' },
+    })
+    mockConfirm.mockResolvedValueOnce(true)   // re-auth confirm
+    mockInput.mockResolvedValueOnce('file@example.com')
+    mockPassword.mockResolvedValueOnce('new-token')
+    mockValidateCredentials.mockResolvedValueOnce({
+      username: 'johndoe',
+      displayName: 'John Doe',
+      accountId: '557058:xxxx',
+    })
+
+    await runCommand(['auth', 'login'])
+
+    expect(mockSaveCredentials).toHaveBeenCalledWith({
+      email: 'file@example.com',
+      apiToken: 'new-token',
+    })
+  })
+
+  it('aborts login when already logged in and user declines re-auth', async () => {
+    mockGetAuthState.mockReturnValueOnce({
+      source: 'file',
+      credentials: { email: 'file@example.com', apiToken: 'file-token' },
+    })
+    mockConfirm.mockResolvedValueOnce(false)  // decline re-auth
+
+    await runCommand(['auth', 'login'])
+
+    expect(mockInput).not.toHaveBeenCalled()
     expect(mockSaveCredentials).not.toHaveBeenCalled()
   })
 })

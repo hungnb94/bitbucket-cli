@@ -8,6 +8,7 @@ import {
   clearCredentials,
   validateCredentials,
   getConfigPath,
+  getAuthState,
 } from '../auth/index.js'
 
 function printLoginGuide(): void {
@@ -40,6 +41,24 @@ export function createAuthCommand(): Command {
     .command('login')
     .description('Log in with your Atlassian email and API token')
     .action(async () => {
+      const state = getAuthState()
+
+      if (state.source === 'env') {
+        console.error(
+          chalk.red('✗') +
+          ' Credentials are set via environment variables (BITBUCKET_EMAIL, BITBUCKET_API_TOKEN). Unset them to use auth login.'
+        )
+        process.exit(1)
+      }
+
+      if (state.source === 'file') {
+        const reauth = await confirm({
+          message: `Already logged in as ${state.credentials.email}. Re-authenticate?`,
+          default: false,
+        })
+        if (!reauth) return
+      }
+
       printLoginGuide()
 
       const email = await input({ message: 'Email:' })
