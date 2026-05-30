@@ -12,6 +12,9 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
+  "engines": {
+    "node": ">=22"
+  },
   "packageManager": "yarn@1.22.22",
   "dependencies": {
     "@inquirer/prompts": "^8.5.1",
