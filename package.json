@@ -12,6 +12,7 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
+  "packageManager": "yarn@1.22.22",
   "dependencies": {
     "@inquirer/prompts": "^7.0.0",
     "axios": "^1.7.0",
