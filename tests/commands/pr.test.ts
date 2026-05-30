@@ -114,6 +114,7 @@ describe('pr list', () => {
     await runCommand(['pr', '--workspace', 'flagws', '--repo', 'flagrepo', 'list'])
     expect(mockGetRepoContext).not.toHaveBeenCalled()
     expect(mockListPullRequests).toHaveBeenCalledWith('flagws', 'flagrepo', 'open', 20)
+    expect(consoleSpy).toHaveBeenCalledWith('formatted list')
     consoleSpy.mockRestore()
   })
 
@@ -163,6 +164,8 @@ describe('pr view', () => {
     await runCommand(['pr', '--workspace', 'flagws', '--repo', 'flagrepo', 'view', '42'])
     expect(mockGetRepoContext).not.toHaveBeenCalled()
     expect(mockGetPullRequest).toHaveBeenCalledWith('flagws', 'flagrepo', 42)
+    expect(mockGetPullRequestDiffStat).toHaveBeenCalledWith('flagws', 'flagrepo', 42)
+    expect(consoleSpy).toHaveBeenCalledWith('formatted view')
     consoleSpy.mockRestore()
   })
 
@@ -174,6 +177,7 @@ describe('pr view', () => {
     await runCommand(['pr', '--workspace', 'flagws', 'view', '42'])
     expect(mockGetRepoContext).toHaveBeenCalled()
     expect(mockGetPullRequest).toHaveBeenCalledWith('flagws', 'myrepo', 42)
+    expect(mockGetPullRequestDiffStat).toHaveBeenCalledWith('flagws', 'myrepo', 42)
     consoleSpy.mockRestore()
   })
 
@@ -185,6 +189,7 @@ describe('pr view', () => {
     await runCommand(['pr', '--repo', 'flagrepo', 'view', '42'])
     expect(mockGetRepoContext).toHaveBeenCalled()
     expect(mockGetPullRequest).toHaveBeenCalledWith('myworkspace', 'flagrepo', 42)
+    expect(mockGetPullRequestDiffStat).toHaveBeenCalledWith('myworkspace', 'flagrepo', 42)
     consoleSpy.mockRestore()
   })
 })
@@ -207,6 +212,7 @@ describe('pr diff', () => {
     await runCommand(['pr', '--workspace', 'flagws', '--repo', 'flagrepo', 'diff', '42'])
     expect(mockGetRepoContext).not.toHaveBeenCalled()
     expect(mockGetPullRequestDiff).toHaveBeenCalledWith('flagws', 'flagrepo', 42)
+    expect(consoleSpy).toHaveBeenCalledWith('colored diff')
     consoleSpy.mockRestore()
   })
 
