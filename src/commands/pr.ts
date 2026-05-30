@@ -2,7 +2,7 @@ import { Command, Option } from 'commander'
 import { confirm } from '@inquirer/prompts'
 import chalk from 'chalk'
 import ora from 'ora'
-import { getRepoContext, formatPrList, formatPrView, formatDiff } from '../pr/index.js'
+import { getRepoContext, getCurrentBranch, detectDefaultTarget, formatPrList, formatPrView, formatDiff } from '../pr/index.js'
 import {
   listPullRequests,
   getPullRequest,
@@ -11,6 +11,7 @@ import {
   approvePullRequest,
   declinePullRequest,
   postComment,
+  createPullRequest,
 } from '../api/bitbucket.js'
 import { getCredentials } from '../auth/index.js'
 
@@ -210,6 +211,64 @@ export function createPrCommand(): Command {
           spinner.succeed(`Comment posted on PR #${prId}`)
         }
       } catch (error) {
+        spinner.fail(error instanceof Error ? error.message : 'Unknown error')
+        process.exit(1)
+      }
+    })
+
+  pr
+    .command('create')
+    .description('Create a pull request')
+    .requiredOption('--title <title>', 'PR title')
+    .option('--description <text>', 'PR description')
+    .option('--target <branch>', 'Target branch (default: main or master)')
+    .option('-y, --yes', 'Skip confirmation prompt')
+    .action(async (options) => {
+      requireAuth()
+      const { workspace, repo } = getContext()
+
+      let sourceBranch: string
+      try {
+        sourceBranch = getCurrentBranch()
+      } catch (error) {
+        console.error(chalk.red('✗') + ' ' + (error instanceof Error ? error.message : String(error)))
+        process.exit(1) as never
+      }
+
+      let targetBranch: string = options.target
+      if (!targetBranch) {
+        try {
+          targetBranch = detectDefaultTarget()
+        } catch (error) {
+          console.error(chalk.red('✗') + ' ' + (error instanceof Error ? error.message : String(error)))
+          process.exit(1) as never
+        }
+      }
+
+      if (sourceBranch === targetBranch) {
+        console.error(chalk.red('✗') + ' Source and target branch must be different.')
+        process.exit(1) as never
+      }
+
+      if (!options.yes) {
+        console.log()
+        console.log(`  Title:   ${options.title}`)
+        console.log(`  Source:  ${sourceBranch} → ${targetBranch}`)
+        console.log(`  Desc:    ${options.description ?? '(none)'}`)
+        console.log()
+        const confirmed = await confirm({
+          message: 'Create PR?',
+          default: false,
+        })
+        if (!confirmed) { console.log(chalk.dim('Cancelled.')); return }
+      }
+
+      const spinner = ora('Creating pull request...').start()
+      try {
+        const result = await createPullRequest(workspace, repo, options.title, sourceBranch, targetBranch, options.description)
+        spinner.succeed(`PR #${result.id} created: ${result.links.html.href}`)
+      } catch (error) {
+        if (error instanceof Error && error.constructor.name === 'ExitPromptError') process.exit(0)
         spinner.fail(error instanceof Error ? error.message : 'Unknown error')
         process.exit(1)
       }
