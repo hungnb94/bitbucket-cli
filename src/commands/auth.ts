@@ -11,6 +11,7 @@ import {
   getAuthState,
 } from '../auth/index.js'
 
+
 function printLoginGuide(): void {
   console.log(chalk.blue('ℹ') + '  You need to create an API token on Atlassian before continuing.\n')
   console.log('   Visit: ' + chalk.cyan('https://id.atlassian.com/manage-profile/security/api-tokens'))
@@ -40,7 +41,10 @@ export function createAuthCommand(): Command {
   auth
     .command('login')
     .description('Log in with your Atlassian email and API token')
-    .action(async () => {
+    .option('--email <email>', 'Email (non-interactive)')
+    .option('--token <token>', 'API token (non-interactive)')
+    .option('-y, --yes', 'Skip confirmation when already logged in')
+    .action(async (options) => {
       const state = getAuthState()
 
       if (state.source === 'env') {
@@ -52,17 +56,33 @@ export function createAuthCommand(): Command {
       }
 
       if (state.source === 'file') {
-        const reauth = await confirm({
-          message: `Already logged in as ${state.credentials.email}. Re-authenticate?`,
-          default: false,
-        })
-        if (!reauth) return
+        if (!options.yes) {
+          const reauth = await confirm({
+            message: `Already logged in as ${state.credentials.email}. Re-authenticate?`,
+            default: false,
+          })
+          if (!reauth) return
+        }
       }
 
-      printLoginGuide()
+      const hasEmail = !!options.email
+      const hasToken = !!options.token
+      if (hasEmail !== hasToken) {
+        console.error(chalk.red('✗') + ' --email and --token must be used together')
+        process.exit(1)
+      }
 
-      const email = (await input({ message: 'Email:' })).trim()
-      const apiToken = await password({ message: 'API token:', mask: '*' })
+      let email: string
+      let apiToken: string
+
+      if (hasEmail && hasToken) {
+        email = options.email as string
+        apiToken = options.token as string
+      } else {
+        printLoginGuide()
+        email = (await input({ message: 'Email:' })).trim()
+        apiToken = await password({ message: 'API token:', mask: '*' })
+      }
 
       const spinner = ora('Verifying credentials...').start()
       try {
@@ -85,7 +105,8 @@ export function createAuthCommand(): Command {
   auth
     .command('logout')
     .description('Remove saved credentials')
-    .action(async () => {
+    .option('-y, --yes', 'Skip confirmation prompt')
+    .action(async (options) => {
       const state = getAuthState()
 
       if (state.source === 'none') {
@@ -101,11 +122,12 @@ export function createAuthCommand(): Command {
         process.exit(1)
       }
 
-      const confirmed = await confirm({ message: 'Remove saved credentials?', default: false })
-      if (confirmed) {
-        clearCredentials()
-        console.log(chalk.green('✓') + ` Removed ${getConfigPath()}`)
+      if (!options.yes) {
+        const confirmed = await confirm({ message: 'Remove saved credentials?', default: false })
+        if (!confirmed) return
       }
+      clearCredentials()
+      console.log(chalk.green('✓') + ` Removed ${getConfigPath()}`)
     })
 
   auth

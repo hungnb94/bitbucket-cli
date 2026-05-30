@@ -94,8 +94,8 @@ bitbucket pr create --title <title> [--description <text>] [--target <branch>] [
 bitbucket pr list [--state open|merged|declined|all] [--limit <n>]
 bitbucket pr view <id>
 bitbucket pr diff <id>
-bitbucket pr approve <id>
-bitbucket pr decline <id>
+bitbucket pr approve <id> [-y]
+bitbucket pr decline <id> [-y]
 bitbucket pr comment <id> <message> [--file <path> --line <n>]
 ```
 
@@ -161,10 +161,23 @@ Raw diff printed to stdout with color: `+` lines green, `-` lines red, hunk head
 
 ### `pr approve <id>` / `pr decline <id>`
 
-Confirmation prompt before API call:
+**Options:**
+
+| Flag | Description |
+|---|---|
+| `-y, --yes` | Skip fetch and confirmation, approve/decline immediately |
+
+Interactive mode (default) — fetches PR title then prompts:
 
 ```
 ? Approve PR #42 "feat: android in-app update"? (y/N)
+✓ PR #42 approved
+```
+
+Non-interactive mode (`--yes`) — skips fetch and confirmation:
+
+```
+$ bitbucket pr approve 42 --yes
 ✓ PR #42 approved
 ```
 

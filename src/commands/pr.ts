@@ -40,6 +40,41 @@ function parseId(raw: string): number {
   return id
 }
 
+async function runPrAction(
+  workspace: string,
+  repo: string,
+  prId: number,
+  opts: {
+    confirmVerb: string
+    actionMsg: string
+    successMsg: string
+    skipConfirm: boolean
+    apiFn: (ws: string, repo: string, id: number) => Promise<void>
+  }
+): Promise<void> {
+  let fetchSpinner: ReturnType<typeof ora> | undefined
+  let actionSpinner: ReturnType<typeof ora> | undefined
+  try {
+    if (!opts.skipConfirm) {
+      fetchSpinner = ora('Fetching pull request...').start()
+      const pullRequest = await getPullRequest(workspace, repo, prId)
+      fetchSpinner.stop()
+      const confirmed = await confirm({
+        message: `${opts.confirmVerb} PR #${prId} "${pullRequest.title}"?`,
+        default: false,
+      })
+      if (!confirmed) { console.log(chalk.dim('Cancelled.')); return }
+    }
+    actionSpinner = ora(opts.actionMsg).start()
+    await opts.apiFn(workspace, repo, prId)
+    actionSpinner.succeed(opts.successMsg)
+  } catch (error) {
+    if (error instanceof Error && error.name === 'ExitPromptError') process.exit(0)
+    ;(actionSpinner ?? fetchSpinner)?.fail(error instanceof Error ? error.message : 'Unknown error')
+    process.exit(1)
+  }
+}
+
 export function createPrCommand(): Command {
   const pr = new Command('pr').description('Manage pull requests')
 
@@ -114,62 +149,36 @@ export function createPrCommand(): Command {
     .command('approve')
     .description('Approve a pull request')
     .argument('<id>', 'PR ID')
-    .action(async (id) => {
+    .option('-y, --yes', 'Skip confirmation prompt')
+    .action(async (id, options) => {
       requireAuth()
       const { workspace, repo } = getContext()
       const prId = parseId(id)
-      const spinner = ora('Fetching pull request...').start()
-      let actionSpinner: ReturnType<typeof ora> | undefined
-      try {
-        const pullRequest = await getPullRequest(workspace, repo, prId)
-        spinner.stop()
-        const confirmed = await confirm({
-          message: `Approve PR #${prId} "${pullRequest.title}"?`,
-          default: false,
-        })
-        if (!confirmed) { console.log(chalk.dim('Cancelled.')); return }
-        actionSpinner = ora('Approving...').start()
-        await approvePullRequest(workspace, repo, prId)
-        actionSpinner.succeed(`PR #${prId} approved`)
-      } catch (error) {
-        if (error instanceof Error && error.name === 'ExitPromptError') process.exit(0)
-        actionSpinner?.fail(error instanceof Error ? error.message : 'Unknown error')
-        if (!actionSpinner) {
-          spinner.fail(error instanceof Error ? error.message : 'Unknown error')
-        }
-        process.exit(1)
-      }
+      await runPrAction(workspace, repo, prId, {
+        confirmVerb: 'Approve',
+        actionMsg: 'Approving...',
+        successMsg: `PR #${prId} approved`,
+        skipConfirm: !!options.yes,
+        apiFn: approvePullRequest,
+      })
     })
 
   pr
     .command('decline')
     .description('Decline a pull request')
     .argument('<id>', 'PR ID')
-    .action(async (id) => {
+    .option('-y, --yes', 'Skip confirmation prompt')
+    .action(async (id, options) => {
       requireAuth()
       const { workspace, repo } = getContext()
       const prId = parseId(id)
-      const spinner = ora('Fetching pull request...').start()
-      let actionSpinner: ReturnType<typeof ora> | undefined
-      try {
-        const pullRequest = await getPullRequest(workspace, repo, prId)
-        spinner.stop()
-        const confirmed = await confirm({
-          message: `Decline PR #${prId} "${pullRequest.title}"?`,
-          default: false,
-        })
-        if (!confirmed) { console.log(chalk.dim('Cancelled.')); return }
-        actionSpinner = ora('Declining...').start()
-        await declinePullRequest(workspace, repo, prId)
-        actionSpinner.succeed(`PR #${prId} declined`)
-      } catch (error) {
-        if (error instanceof Error && error.name === 'ExitPromptError') process.exit(0)
-        actionSpinner?.fail(error instanceof Error ? error.message : 'Unknown error')
-        if (!actionSpinner) {
-          spinner.fail(error instanceof Error ? error.message : 'Unknown error')
-        }
-        process.exit(1)
-      }
+      await runPrAction(workspace, repo, prId, {
+        confirmVerb: 'Decline',
+        actionMsg: 'Declining...',
+        successMsg: `PR #${prId} declined`,
+        skipConfirm: !!options.yes,
+        apiFn: declinePullRequest,
+      })
     })
 
   pr
