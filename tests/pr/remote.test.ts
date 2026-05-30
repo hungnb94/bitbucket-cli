@@ -23,6 +23,11 @@ describe('getRepoContext', () => {
     expect(getRepoContext()).toEqual({ workspace: 'myworkspace', repo: 'myrepo' })
   })
 
+  it('parses SSH URL with custom host alias (e.g. work.bitbucket.org)', () => {
+    vi.mocked(execSync).mockReturnValue('git@work.bitbucket.org:myworkspace/myrepo.git\n' as any)
+    expect(getRepoContext()).toEqual({ workspace: 'myworkspace', repo: 'myrepo' })
+  })
+
   it('throws when not a git repo or no remote', () => {
     vi.mocked(execSync).mockImplementation(() => { throw new Error('fatal') })
     expect(() => getRepoContext()).toThrow('Could not detect workspace/repo from git remote origin.')
