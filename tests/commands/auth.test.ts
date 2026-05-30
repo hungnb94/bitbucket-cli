@@ -40,6 +40,9 @@ const { createAuthCommand } = await import('../../src/commands/auth.js')
 
 beforeEach(() => {
   vi.clearAllMocks()
+  vi.spyOn(process, 'exit').mockImplementation((code) => {
+    throw new Error(`process.exit(${code})`)
+  })
 })
 
 async function runCommand(args: string[]): Promise<void> {

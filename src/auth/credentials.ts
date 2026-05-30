@@ -12,7 +12,7 @@ type BitbucketUserResponse = {
   account_id: string
 }
 
-function buildBasicAuth(email: string, apiToken: string): string {
+export function buildBasicAuth(email: string, apiToken: string): string {
   return 'Basic ' + Buffer.from(`${email}:${apiToken}`).toString('base64')
 }
 

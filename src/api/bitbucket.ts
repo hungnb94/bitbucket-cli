@@ -1,5 +1,5 @@
 import axios, { type AxiosInstance } from 'axios'
-import { getCredentials } from '../auth/index.js'
+import { getCredentials, buildBasicAuth } from '../auth/index.js'
 
 const BASE_URL = 'https://api.bitbucket.org/2.0'
 
@@ -10,7 +10,7 @@ export function createClient(): AxiosInstance {
   }
   return axios.create({
     baseURL: BASE_URL,
-    headers: { Authorization: `Bearer ${creds.apiToken}` },
+    headers: { Authorization: buildBasicAuth(creds.email, creds.apiToken) },
     timeout: 15000,
   })
 }
