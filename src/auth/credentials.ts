@@ -1,4 +1,4 @@
-import axios from 'axios'
+import axios, { type AxiosError } from 'axios'
 
 export type UserInfo = {
   username: string
@@ -35,6 +35,18 @@ function toUserInfo(data: BitbucketUserResponse): UserInfo {
   }
 }
 
+function throwFriendlyAxiosError(error: AxiosError, afterRetry = false): never {
+  if (error.response?.status === 401) throw new Error('401 Unauthorized')
+  if (error.response?.status === 403) {
+    throw new Error('403 Forbidden: token missing required scopes, check your token scopes')
+  }
+  if (error.response) {
+    throw new Error(`Request failed with status ${error.response.status}`)
+  }
+  const suffix = afterRetry ? ' after retry' : ''
+  throw new Error(`Connection failed${suffix}. Check your network connection.`)
+}
+
 export async function validateCredentials(creds: {
   email: string
   apiToken: string
@@ -44,23 +56,15 @@ export async function validateCredentials(creds: {
   } catch (error) {
     if (!axios.isAxiosError(error)) throw error
 
-    if (error.response?.status === 401) throw new Error('401 Unauthorized')
-    if (error.response?.status === 403) {
-      throw new Error('403 Forbidden: token missing required scopes, check your token scopes')
-    }
     if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
       try {
         return toUserInfo(await fetchUser(creds.email, creds.apiToken))
       } catch (retryError) {
-        if (axios.isAxiosError(retryError)) {
-          if (retryError.response?.status === 401) throw new Error('401 Unauthorized')
-          if (retryError.response?.status === 403) {
-            throw new Error('403 Forbidden: token missing required scopes, check your token scopes')
-          }
-        }
-        throw new Error('Connection failed after retry. Check your network connection.')
+        if (!axios.isAxiosError(retryError)) throw retryError
+        throwFriendlyAxiosError(retryError, true)
       }
     }
-    throw error
+
+    throwFriendlyAxiosError(error)
   }
 }
