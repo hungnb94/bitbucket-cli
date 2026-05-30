@@ -10,11 +10,16 @@ const mockGetRepoContext = vi.fn()
 const mockFormatPrList = vi.fn()
 const mockFormatPrView = vi.fn()
 const mockFormatDiff = vi.fn()
+const mockGetCurrentBranch = vi.fn()
+const mockDetectDefaultTarget = vi.fn()
+const mockCreatePullRequest = vi.fn()
 vi.mock('../../src/pr/index.js', () => ({
   getRepoContext: mockGetRepoContext,
   formatPrList: mockFormatPrList,
   formatPrView: mockFormatPrView,
   formatDiff: mockFormatDiff,
+  getCurrentBranch: mockGetCurrentBranch,
+  detectDefaultTarget: mockDetectDefaultTarget,
 }))
 
 const mockListPullRequests = vi.fn()
@@ -32,6 +37,7 @@ vi.mock('../../src/api/bitbucket.js', () => ({
   approvePullRequest: mockApprovePullRequest,
   declinePullRequest: mockDeclinePullRequest,
   postComment: mockPostComment,
+  createPullRequest: mockCreatePullRequest,
 }))
 
 const mockConfirm = vi.fn()
@@ -69,6 +75,8 @@ beforeEach(() => {
   })
   mockGetCredentials.mockReturnValue({ email: 'user@example.com', apiToken: 'token' })
   mockGetRepoContext.mockReturnValue(CONTEXT)
+  mockGetCurrentBranch.mockReturnValue('feature/new-feature')
+  mockDetectDefaultTarget.mockReturnValue('main')
 })
 
 async function runCommand(args: string[]): Promise<void> {
@@ -198,6 +206,115 @@ describe('pr comment', () => {
   it('exits with 1 when --line provided without --file', async () => {
     await expect(
       runCommand(['pr', 'comment', '42', 'nit', '--line', '15'])
+    ).rejects.toThrow('process.exit(1)')
+  })
+})
+
+describe('pr create', () => {
+  it('shows preview prompt then creates PR on confirm', async () => {
+    mockConfirm.mockResolvedValue(true)
+    mockCreatePullRequest.mockResolvedValue({
+      id: 43,
+      links: { html: { href: 'https://bitbucket.org/ws/repo/pull-requests/43' } },
+    })
+    await runCommand(['pr', 'create', '--title', 'feat: new feature'])
+    expect(mockConfirm).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'Create PR?' })
+    )
+    expect(mockCreatePullRequest).toHaveBeenCalledWith(
+      'myworkspace', 'myrepo', 'feat: new feature', 'feature/new-feature', 'main', undefined
+    )
+  })
+
+  it('skips confirmation and creates PR when --yes is passed', async () => {
+    mockCreatePullRequest.mockResolvedValue({
+      id: 43,
+      links: { html: { href: 'https://bitbucket.org/ws/repo/pull-requests/43' } },
+    })
+    await runCommand(['pr', 'create', '--title', 'feat: new feature', '--yes'])
+    expect(mockConfirm).not.toHaveBeenCalled()
+    expect(mockCreatePullRequest).toHaveBeenCalledWith(
+      'myworkspace', 'myrepo', 'feat: new feature', 'feature/new-feature', 'main', undefined
+    )
+  })
+
+  it('passes description to createPullRequest when --description is provided', async () => {
+    mockCreatePullRequest.mockResolvedValue({
+      id: 43,
+      links: { html: { href: 'https://bitbucket.org/ws/repo/pull-requests/43' } },
+    })
+    await runCommand(['pr', 'create', '--title', 'feat: new', '--description', 'my desc', '--yes'])
+    expect(mockCreatePullRequest).toHaveBeenCalledWith(
+      'myworkspace', 'myrepo', 'feat: new', 'feature/new-feature', 'main', 'my desc'
+    )
+  })
+
+  it('uses --target branch instead of auto-detected default', async () => {
+    mockCreatePullRequest.mockResolvedValue({
+      id: 43,
+      links: { html: { href: 'https://bitbucket.org/ws/repo/pull-requests/43' } },
+    })
+    await runCommand(['pr', 'create', '--title', 'feat: new', '--target', 'develop', '--yes'])
+    expect(mockDetectDefaultTarget).not.toHaveBeenCalled()
+    expect(mockCreatePullRequest).toHaveBeenCalledWith(
+      'myworkspace', 'myrepo', 'feat: new', 'feature/new-feature', 'develop', undefined
+    )
+  })
+
+  it('exits with 1 when not logged in', async () => {
+    mockGetCredentials.mockReturnValue(null)
+    await expect(
+      runCommand(['pr', 'create', '--title', 'feat: new'])
+    ).rejects.toThrow('process.exit(1)')
+  })
+
+  it('exits with 1 when source and target branch are the same', async () => {
+    mockGetCurrentBranch.mockReturnValue('main')
+    await expect(
+      runCommand(['pr', 'create', '--title', 'feat: new', '--target', 'main'])
+    ).rejects.toThrow('process.exit(1)')
+  })
+
+  it('exits with 1 when getCurrentBranch throws', async () => {
+    mockGetCurrentBranch.mockImplementation(() => {
+      throw new Error('Could not detect current branch. Are you in a git repo?')
+    })
+    await expect(
+      runCommand(['pr', 'create', '--title', 'feat: new'])
+    ).rejects.toThrow('process.exit(1)')
+  })
+
+  it('does not call createPullRequest when user cancels confirmation', async () => {
+    mockConfirm.mockResolvedValue(false)
+    await runCommand(['pr', 'create', '--title', 'feat: new'])
+    expect(mockCreatePullRequest).not.toHaveBeenCalled()
+  })
+
+  it('shows success message with PR id and URL', async () => {
+    const mockSpinner = { start: vi.fn().mockReturnThis(), succeed: vi.fn().mockReturnThis(), fail: vi.fn().mockReturnThis(), stop: vi.fn().mockReturnThis() }
+    const { default: mockOra } = await import('ora')
+    vi.mocked(mockOra).mockReturnValueOnce(mockSpinner as any)
+    mockCreatePullRequest.mockResolvedValue({
+      id: 43,
+      links: { html: { href: 'https://bitbucket.org/ws/repo/pull-requests/43' } },
+    })
+    await runCommand(['pr', 'create', '--title', 'feat: new feature', '--yes'])
+    expect(mockSpinner.succeed).toHaveBeenCalledWith('PR #43 created: https://bitbucket.org/ws/repo/pull-requests/43')
+  })
+
+  it('exits with 1 when createPullRequest throws', async () => {
+    mockCreatePullRequest.mockRejectedValue(new Error('A PR already exists for this branch.'))
+    await expect(
+      runCommand(['pr', 'create', '--title', 'feat: new', '--yes'])
+    ).rejects.toThrow('process.exit(1)')
+  })
+
+  it('exits with 1 when detectDefaultTarget throws', async () => {
+    mockDetectDefaultTarget.mockImplementation(() => {
+      throw new Error('Could not detect default target branch. Use --target <branch>.')
+    })
+    await expect(
+      runCommand(['pr', 'create', '--title', 'feat: new'])
     ).rejects.toThrow('process.exit(1)')
   })
 })

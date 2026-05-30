@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 vi.mock('child_process', () => ({ execSync: vi.fn() }))
 
 import { execSync } from 'child_process'
-const { getRepoContext } = await import('../../src/pr/remote.js')
+const { getRepoContext, getCurrentBranch, detectDefaultTarget } = await import('../../src/pr/remote.js')
 
 beforeEach(() => vi.clearAllMocks())
 
@@ -36,5 +36,53 @@ describe('getRepoContext', () => {
   it('throws when remote is not a Bitbucket URL', () => {
     vi.mocked(execSync).mockReturnValue('https://github.com/user/repo.git\n' as any)
     expect(() => getRepoContext()).toThrow('Remote origin is not a Bitbucket repository.')
+  })
+})
+
+describe('getCurrentBranch', () => {
+  it('returns trimmed branch name', () => {
+    vi.mocked(execSync).mockReturnValue('feature/my-branch\n' as any)
+    expect(getCurrentBranch()).toBe('feature/my-branch')
+  })
+
+  it('throws when in detached HEAD state (empty output)', () => {
+    vi.mocked(execSync).mockReturnValue('\n' as any)
+    expect(() => getCurrentBranch()).toThrow('Could not detect current branch. Are you in a git repo?')
+  })
+
+  it('throws when git command fails', () => {
+    vi.mocked(execSync).mockImplementation(() => { throw new Error('fatal') })
+    expect(() => getCurrentBranch()).toThrow('Could not detect current branch. Are you in a git repo?')
+  })
+})
+
+describe('detectDefaultTarget', () => {
+  it('returns "main" when main branch exists locally', () => {
+    vi.mocked(execSync).mockReturnValue('* feature/foo\n  main\n  remotes/origin/main\n' as any)
+    expect(detectDefaultTarget()).toBe('main')
+  })
+
+  it('returns "main" when main only exists as a remote tracking ref', () => {
+    vi.mocked(execSync).mockReturnValue('* feature/foo\n  remotes/origin/main\n' as any)
+    expect(detectDefaultTarget()).toBe('main')
+  })
+
+  it('returns "master" when no main branch but master exists locally', () => {
+    vi.mocked(execSync).mockReturnValue('* feature/foo\n  master\n' as any)
+    expect(detectDefaultTarget()).toBe('master')
+  })
+
+  it('throws when neither main nor master exists', () => {
+    vi.mocked(execSync).mockReturnValue('* feature/foo\n  remotes/origin/other\n' as any)
+    expect(() => detectDefaultTarget()).toThrow(
+      'Could not detect default target branch. Use --target <branch>.'
+    )
+  })
+
+  it('throws when git command fails', () => {
+    vi.mocked(execSync).mockImplementation(() => { throw new Error('fatal') })
+    expect(() => detectDefaultTarget()).toThrow(
+      'Could not detect default target branch. Use --target <branch>.'
+    )
   })
 })

@@ -18,6 +18,7 @@ const {
   approvePullRequest,
   declinePullRequest,
   postComment,
+  createPullRequest,
 } = await import('../../src/api/bitbucket.js')
 
 const WS = 'myworkspace'
@@ -194,5 +195,48 @@ describe('postComment', () => {
   it('throws "403 Forbidden" on 403', async () => {
     mockPost.mockRejectedValue(makeAxiosError(403))
     await expect(postComment(WS, REPO, 42, 'hi')).rejects.toThrow('403 Forbidden')
+  })
+})
+
+describe('createPullRequest', () => {
+  it('calls POST pullrequests and returns id and links', async () => {
+    mockPost.mockResolvedValue({
+      data: {
+        id: 43,
+        links: { html: { href: 'https://bitbucket.org/ws/repo/pull-requests/43' } },
+      },
+    })
+    const result = await createPullRequest(WS, REPO, 'feat: new', 'feature/new', 'main')
+    expect(mockPost).toHaveBeenCalledWith(
+      '/repositories/myworkspace/myrepo/pullrequests',
+      {
+        title: 'feat: new',
+        source: { branch: { name: 'feature/new' } },
+        destination: { branch: { name: 'main' } },
+      }
+    )
+    expect(result.id).toBe(43)
+    expect(result.links.html.href).toBe('https://bitbucket.org/ws/repo/pull-requests/43')
+  })
+
+  it('includes description in body when provided', async () => {
+    mockPost.mockResolvedValue({
+      data: {
+        id: 43,
+        links: { html: { href: 'https://bitbucket.org/ws/repo/pull-requests/43' } },
+      },
+    })
+    await createPullRequest(WS, REPO, 'feat: new', 'feature/new', 'main', 'my description')
+    expect(mockPost).toHaveBeenCalledWith(
+      '/repositories/myworkspace/myrepo/pullrequests',
+      expect.objectContaining({ description: 'my description' })
+    )
+  })
+
+  it('throws "A PR already exists for this branch." on 409', async () => {
+    mockPost.mockRejectedValue(makeAxiosError(409))
+    await expect(
+      createPullRequest(WS, REPO, 'feat: new', 'feature/new', 'main')
+    ).rejects.toThrow('A PR already exists for this branch.')
   })
 })
