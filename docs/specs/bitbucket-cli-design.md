@@ -1,10 +1,10 @@
-# Bitbucket CLI Tool — Design Spec\
+# Bitbucket CLI Tool — Design Spec
 
 ---
 
 ## Overview
 
-A TypeScript/Node.js CLI tool published to npm that connects to Bitbucket Cloud. Supports full PR workflow from the terminal — list, view, diff, approve, decline, comment — plus AI-powered PR review via Claude Code.
+A TypeScript/Node.js CLI tool that connects to Bitbucket Cloud. Supports full PR workflow from the terminal — list, view, diff, approve, decline, comment.
 
 ---
 
@@ -19,8 +19,6 @@ A TypeScript/Node.js CLI tool published to npm that connects to Bitbucket Cloud.
 | `conf` | Config persistence at `~/.config/bitbucket-cli/` |
 | `ora` | Loading spinners |
 
-**Distribution:** npm package, installed via `npm install -g bitbucket-cli`, invoked as `bitbucket`.
-
 ---
 
 ## Project Structure
@@ -31,14 +29,18 @@ bitbucket-cli/
 │   ├── index.ts              # entry point, CLI router
 │   ├── commands/
 │   │   ├── auth.ts           # login, logout, whoami
-│   │   ├── pr.ts             # list, view, diff, approve, decline
-│   │   ├── comment.ts        # post/list comments
-│   │   └── review.ts         # AI review via Claude Code
+│   │   └── pr.ts             # list, view, diff, approve, decline, comment
 │   ├── api/
 │   │   └── bitbucket.ts      # Bitbucket REST API client (axios)
-│   └── utils/
-│       ├── config.ts         # read/write ~/.config/bitbucket-cli/config.json
-│       └── format.ts         # format terminal output (tables, diffs)
+│   ├── auth/
+│   │   ├── index.ts          # re-export public API
+│   │   ├── config.ts         # read/write ~/.config/bitbucket-cli/config.json
+│   │   └── credentials.ts    # validate credentials against Bitbucket API
+│   └── pr/
+│       ├── index.ts          # re-export public API
+│       ├── remote.ts         # parse git remote origin → { workspace, repo }
+│       ├── format.ts         # table, diff highlighting, pr view layout
+│       └── types.ts          # PullRequest type
 ├── package.json
 ├── tsconfig.json
 └── README.md
@@ -55,13 +57,15 @@ Credentials saved to `~/.config/bitbucket-cli/config.json` via the `conf` librar
 ```json
 {
   "email": "johndoe@example.com",
-  "appPassword": "xxxxxxxxxxxx"
+  "apiToken": "xxxxxxxxxxxx"
 }
 ```
 
+Uses Atlassian API tokens (App Passwords deprecated July 28, 2026). All API calls use HTTP Basic Auth (`email:apiToken` base64-encoded).
+
 ### Environment variable override
 
-If `BITBUCKET_USERNAME` and `BITBUCKET_APP_PASSWORD` are set in the environment, they take precedence over the config file. Useful for CI.
+If `BITBUCKET_EMAIL` and `BITBUCKET_API_TOKEN` are set in the environment, they take precedence over the config file. Useful for CI.
 
 ### Commands
 
@@ -73,8 +77,8 @@ bitbucket auth whoami   # prints current user info from API
 
 **Login flow:**
 ```
-? Bitbucket username: hung
-? App Password: **********************
+? Email: user@example.com
+? API token: **********************
 ✓ Credentials saved to ~/.config/bitbucket-cli/config.json
 ```
 
@@ -110,25 +114,28 @@ Prompts for confirmation before calling API:
 ? Approve PR #42 "feat: android in-app update"? (y/N)
 ```
 
-### `bitbucket pr comment <id> "message"`
+### `bitbucket pr comment <id> <message>`
 
 Posts a general comment on the PR.
 
 Flags:
-- `--file <path>` + `--line <n>` — post an inline comment on a specific line
+- `--file <path>` + `--line <n>` — post an inline comment on a specific line (both required together)
 
 ---
 
 ## Error Handling
 
-- Missing credentials → prompt user to run `bitbucket auth login`
-- API errors → display HTTP status + Bitbucket error message
-- Network timeout → retry once, then fail with clear message
+- Missing credentials → `✗ Not logged in. Run: bitbucket auth login`
+- 403 Forbidden → `✗ 403 Forbidden: token missing required scopes.`
+- Network timeout → retry once, then fail with `Connection failed after retry.`
+- Not a git repo / no remote origin → `✗ Could not detect workspace/repo from git remote origin.`
+- Remote not a Bitbucket URL → `✗ Remote origin is not a Bitbucket repository.`
 
 ---
 
 ## Security
 
-- App Password stored plain text in user config directory (same approach as `gh` CLI)
+- API token stored plain text in user config directory (same approach as `gh` CLI)
 - Config file permissions set to `600` on creation
 - Never log credentials to stdout/stderr
+- PR IDs validated as integers before API calls
