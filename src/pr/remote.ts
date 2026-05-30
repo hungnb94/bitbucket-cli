@@ -21,7 +21,7 @@ export function getRepoContext(): RepoContext {
   )
   if (httpsMatch) return { workspace: httpsMatch[1], repo: httpsMatch[2] }
 
-  const sshMatch = url.match(/^git@bitbucket\.org:([^/]+)\/([^/]+?)(?:\.git)?$/)
+  const sshMatch = url.match(/^git@(?:\w[\w.-]*\.)?bitbucket\.org:([^/]+)\/([^/]+?)(?:\.git)?$/)
   if (sshMatch) return { workspace: sshMatch[1], repo: sshMatch[2] }
 
   throw new Error('Remote origin is not a Bitbucket repository.')
