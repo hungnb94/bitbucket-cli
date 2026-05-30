@@ -289,4 +289,16 @@ describe('pr create', () => {
     await runCommand(['pr', 'create', '--title', 'feat: new'])
     expect(mockCreatePullRequest).not.toHaveBeenCalled()
   })
+
+  it('shows success message with PR id and URL', async () => {
+    const mockSpinner = { start: vi.fn().mockReturnThis(), succeed: vi.fn().mockReturnThis(), fail: vi.fn().mockReturnThis(), stop: vi.fn().mockReturnThis() }
+    const { default: mockOra } = await import('ora')
+    vi.mocked(mockOra).mockReturnValueOnce(mockSpinner as any)
+    mockCreatePullRequest.mockResolvedValue({
+      id: 43,
+      links: { html: { href: 'https://bitbucket.org/ws/repo/pull-requests/43' } },
+    })
+    await runCommand(['pr', 'create', '--title', 'feat: new feature', '--yes'])
+    expect(mockSpinner.succeed).toHaveBeenCalledWith('PR #43 created: https://bitbucket.org/ws/repo/pull-requests/43')
+  })
 })

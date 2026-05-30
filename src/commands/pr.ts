@@ -250,26 +250,27 @@ export function createPrCommand(): Command {
         process.exit(1) as never
       }
 
-      if (!options.yes) {
-        console.log()
-        console.log(`  Title:   ${options.title}`)
-        console.log(`  Source:  ${sourceBranch} → ${targetBranch}`)
-        console.log(`  Desc:    ${options.description ?? '(none)'}`)
-        console.log()
-        const confirmed = await confirm({
-          message: 'Create PR?',
-          default: false,
-        })
-        if (!confirmed) { console.log(chalk.dim('Cancelled.')); return }
-      }
-
-      const spinner = ora('Creating pull request...').start()
+      let spinner: ReturnType<typeof ora> | undefined
       try {
+        if (!options.yes) {
+          console.log()
+          console.log(`  Title:   ${options.title}`)
+          console.log(`  Source:  ${sourceBranch} → ${targetBranch}`)
+          console.log(`  Desc:    ${options.description ?? '(none)'}`)
+          console.log()
+          const confirmed = await confirm({
+            message: 'Create PR?',
+            default: false,
+          })
+          if (!confirmed) { console.log(chalk.dim('Cancelled.')); return }
+        }
+
+        spinner = ora('Creating pull request...').start()
         const result = await createPullRequest(workspace, repo, options.title, sourceBranch, targetBranch, options.description)
         spinner.succeed(`PR #${result.id} created: ${result.links.html.href}`)
       } catch (error) {
         if (error instanceof Error && error.constructor.name === 'ExitPromptError') process.exit(0)
-        spinner.fail(error instanceof Error ? error.message : 'Unknown error')
+        spinner?.fail(error instanceof Error ? error.message : 'Unknown error')
         process.exit(1)
       }
     })
