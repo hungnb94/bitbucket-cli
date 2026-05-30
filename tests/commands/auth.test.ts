@@ -185,6 +185,18 @@ describe('auth logout', () => {
     expect(mockClearCredentials).not.toHaveBeenCalled()
     errorSpy.mockRestore()
   })
+
+  it('clears credentials with --yes without prompting', async () => {
+    mockGetAuthState.mockReturnValueOnce({
+      source: 'file',
+      credentials: { email: 'file@example.com', apiToken: 'file-token' },
+    })
+
+    await runCommand(['auth', 'logout', '--yes'])
+
+    expect(mockConfirm).not.toHaveBeenCalled()
+    expect(mockClearCredentials).toHaveBeenCalled()
+  })
 })
 
 describe('auth whoami', () => {

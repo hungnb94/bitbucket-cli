@@ -10,6 +10,7 @@ import {
   getConfigPath,
   getAuthState,
 } from '../auth/index.js'
+import { resolveConfirm } from '../utils/confirm.js'
 
 function printLoginGuide(): void {
   console.log(chalk.blue('ℹ') + '  You need to create an API token on Atlassian before continuing.\n')
@@ -85,7 +86,8 @@ export function createAuthCommand(): Command {
   auth
     .command('logout')
     .description('Remove saved credentials')
-    .action(async () => {
+    .option('--yes', 'Skip confirmation prompt')
+    .action(async (options) => {
       const state = getAuthState()
 
       if (state.source === 'none') {
@@ -101,7 +103,7 @@ export function createAuthCommand(): Command {
         process.exit(1)
       }
 
-      const confirmed = await confirm({ message: 'Remove saved credentials?', default: false })
+      const confirmed = await resolveConfirm(options.yes ?? false, 'Remove saved credentials?')
       if (confirmed) {
         clearCredentials()
         console.log(chalk.green('✓') + ` Removed ${getConfigPath()}`)
