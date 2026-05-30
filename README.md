@@ -14,14 +14,14 @@ git clone <repo-url>
 cd bitbucket-cli
 yarn install
 yarn build
-npm link
+yarn link
 ```
 
 ## Authentication
 
 ### Login
 
-```
+```console
 $ bitbucket auth login
 
 ℹ  You need to create an API token on Atlassian before continuing.
@@ -38,8 +38,8 @@ $ bitbucket auth login
    Minimum required scopes:
      ✓ User: Read                (to fetch account info)
      ✓ Repositories: Read        (to read repos, view diffs)
-     ✓ Pull requests: Read       (to list/view PRs, post comments)
-     ✓ Pull requests: Write      (to approve/decline/merge PRs)
+     ✓ Pull requests: Read       (to list/view PRs)
+     ✓ Pull requests: Write      (to approve/decline/merge PRs, post comments)
 
 ? Email: user@example.com
 ? API token: **********************
@@ -51,7 +51,7 @@ $ bitbucket auth login
 
 ### Logout
 
-```
+```console
 $ bitbucket auth logout
 
 ? Remove saved credentials? (y/N) y
@@ -60,7 +60,7 @@ $ bitbucket auth logout
 
 ### Whoami
 
-```
+```console
 $ bitbucket auth whoami
 
   Username:     johndoe
@@ -74,7 +74,7 @@ Credentials are saved to `~/.config/bitbucket-cli/config.json` with permissions 
 
 For CI environments, set environment variables to skip the config file:
 
-```
+```console
 BITBUCKET_EMAIL=user@example.com
 BITBUCKET_API_TOKEN=your-token
 ```
