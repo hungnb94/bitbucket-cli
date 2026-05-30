@@ -86,6 +86,21 @@ export function createAuthCommand(): Command {
     .command('logout')
     .description('Remove saved credentials')
     .action(async () => {
+      const state = getAuthState()
+
+      if (state.source === 'none') {
+        console.error(chalk.red('✗') + ' Not logged in.')
+        process.exit(1)
+      }
+
+      if (state.source === 'env') {
+        console.error(
+          chalk.red('✗') +
+          ' Credentials are set via environment variables. Unset BITBUCKET_EMAIL and BITBUCKET_API_TOKEN from your shell to log out.'
+        )
+        process.exit(1)
+      }
+
       const confirmed = await confirm({ message: 'Remove saved credentials?', default: false })
       if (confirmed) {
         clearCredentials()

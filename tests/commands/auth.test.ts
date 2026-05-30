@@ -133,6 +133,10 @@ describe('auth login', () => {
 
 describe('auth logout', () => {
   it('clears credentials when user confirms', async () => {
+    mockGetAuthState.mockReturnValueOnce({
+      source: 'file',
+      credentials: { email: 'file@example.com', apiToken: 'file-token' },
+    })
     mockConfirm.mockResolvedValueOnce(true)
 
     await runCommand(['auth', 'logout'])
@@ -141,11 +145,42 @@ describe('auth logout', () => {
   })
 
   it('does not clear credentials when user declines', async () => {
+    mockGetAuthState.mockReturnValueOnce({
+      source: 'file',
+      credentials: { email: 'file@example.com', apiToken: 'file-token' },
+    })
     mockConfirm.mockResolvedValueOnce(false)
 
     await runCommand(['auth', 'logout'])
 
     expect(mockClearCredentials).not.toHaveBeenCalled()
+  })
+
+  it('exits with error when not logged in', async () => {
+    mockGetAuthState.mockReturnValueOnce({ source: 'none' })
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    await expect(runCommand(['auth', 'logout'])).rejects.toThrow()
+
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('Not logged in'))
+    expect(mockClearCredentials).not.toHaveBeenCalled()
+    errorSpy.mockRestore()
+  })
+
+  it('exits with error when credentials are set via env vars', async () => {
+    mockGetAuthState.mockReturnValueOnce({
+      source: 'env',
+      credentials: { email: 'env@example.com', apiToken: 'env-token' },
+    })
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    await expect(runCommand(['auth', 'logout'])).rejects.toThrow()
+
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.stringContaining('BITBUCKET_EMAIL')
+    )
+    expect(mockClearCredentials).not.toHaveBeenCalled()
+    errorSpy.mockRestore()
   })
 })
 
