@@ -42,20 +42,20 @@ export function getCurrentBranch(): string {
 }
 
 export function detectDefaultTarget(): string {
+  let output: string
   try {
-    const mainResult = (execSync('git branch --list main', {
+    output = (execSync('git branch -a', {
       encoding: 'utf8',
       stdio: ['pipe', 'pipe', 'pipe'],
-    }) as string).trim()
-    if (mainResult) return 'main'
-
-    const masterResult = (execSync('git branch --list master', {
-      encoding: 'utf8',
-      stdio: ['pipe', 'pipe', 'pipe'],
-    }) as string).trim()
-    if (masterResult) return 'master'
+    }) as string)
   } catch {
     throw new Error('Could not detect default target branch. Use --target <branch>.')
+  }
+  const branches = output.split('\n').map(l => l.replace(/^\*\s+/, '').trim()).filter(Boolean)
+  for (const candidate of ['main', 'master']) {
+    if (branches.some(b => b === candidate || new RegExp(`^remotes/[^/]+/${candidate}$`).test(b))) {
+      return candidate
+    }
   }
   throw new Error('Could not detect default target branch. Use --target <branch>.')
 }

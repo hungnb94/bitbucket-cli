@@ -58,21 +58,22 @@ describe('getCurrentBranch', () => {
 
 describe('detectDefaultTarget', () => {
   it('returns "main" when main branch exists locally', () => {
-    vi.mocked(execSync).mockReturnValueOnce('  main\n' as any)
+    vi.mocked(execSync).mockReturnValue('* feature/foo\n  main\n  remotes/origin/main\n' as any)
     expect(detectDefaultTarget()).toBe('main')
   })
 
-  it('returns "master" when main does not exist but master does', () => {
-    vi.mocked(execSync)
-      .mockReturnValueOnce('' as any)
-      .mockReturnValueOnce('  master\n' as any)
+  it('returns "main" when main only exists as a remote tracking ref', () => {
+    vi.mocked(execSync).mockReturnValue('* feature/foo\n  remotes/origin/main\n' as any)
+    expect(detectDefaultTarget()).toBe('main')
+  })
+
+  it('returns "master" when no main branch but master exists locally', () => {
+    vi.mocked(execSync).mockReturnValue('* feature/foo\n  master\n' as any)
     expect(detectDefaultTarget()).toBe('master')
   })
 
   it('throws when neither main nor master exists', () => {
-    vi.mocked(execSync)
-      .mockReturnValueOnce('' as any)
-      .mockReturnValueOnce('' as any)
+    vi.mocked(execSync).mockReturnValue('* feature/foo\n  remotes/origin/other\n' as any)
     expect(() => detectDefaultTarget()).toThrow(
       'Could not detect default target branch. Use --target <branch>.'
     )
