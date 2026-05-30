@@ -145,6 +145,22 @@ Options:
 - `--file <path>` — File path for an inline comment (must be used with `--line`)
 - `--line <n>` — Line number for an inline comment (must be used with `--file`)
 
+### Create
+
+```console
+$ bitbucket pr create --title "feat: add login page"
+$ bitbucket pr create --title "feat: add login page" --source feature/login --target develop --yes
+```
+
+Prompts for confirmation showing title, source → target branch, and description before creating. Use `-y, --yes` to skip the prompt (non-interactive).
+
+Options:
+- `--title <title>` — PR title (required)
+- `--source <branch>` — Source branch (default: current branch)
+- `--target <branch>` — Target branch (default: auto-detected `main` or `master`)
+- `--description <text>` — PR description
+- `-y, --yes` — Skip confirmation prompt
+
 ## Configuration
 
 Credentials are saved to `~/.config/bitbucket-cli/config.json` with permissions `600`.

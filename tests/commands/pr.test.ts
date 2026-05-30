@@ -347,4 +347,52 @@ describe('pr create', () => {
       runCommand(['pr', 'create', '--title', 'feat: new'])
     ).rejects.toThrow('process.exit(1)')
   })
+
+  it('uses --source branch instead of getCurrentBranch', async () => {
+    mockCreatePullRequest.mockResolvedValue({
+      id: 43,
+      links: { html: { href: 'https://bitbucket.org/ws/repo/pull-requests/43' } },
+    })
+    await runCommand(['pr', 'create', '--title', 'feat: new', '--source', 'other-branch', '--yes'])
+    expect(mockGetCurrentBranch).not.toHaveBeenCalled()
+    expect(mockCreatePullRequest).toHaveBeenCalledWith(
+      'myworkspace', 'myrepo', 'feat: new', 'other-branch', 'main', undefined
+    )
+  })
+
+  it('exits with 1 when --source and --target are the same', async () => {
+    await expect(
+      runCommand(['pr', 'create', '--title', 'feat: new', '--source', 'main', '--target', 'main'])
+    ).rejects.toThrow('process.exit(1)')
+  })
+
+  it('succeeds with --source when git branch detection is unavailable', async () => {
+    mockGetCurrentBranch.mockImplementation(() => {
+      throw new Error('Could not detect current branch. Are you in a git repo?')
+    })
+    mockCreatePullRequest.mockResolvedValue({
+      id: 43,
+      links: { html: { href: 'https://bitbucket.org/ws/repo/pull-requests/43' } },
+    })
+    await runCommand(['pr', 'create', '--title', 'feat: new', '--source', 'other-branch', '--yes'])
+    expect(mockGetCurrentBranch).not.toHaveBeenCalled()
+    expect(mockCreatePullRequest).toHaveBeenCalledWith(
+      'myworkspace', 'myrepo', 'feat: new', 'other-branch', 'main', undefined
+    )
+  })
+
+  it('exits with 1 when git detection fails and --source is not provided', async () => {
+    mockGetCurrentBranch.mockImplementation(() => {
+      throw new Error('Could not detect current branch. Are you in a git repo?')
+    })
+    await expect(
+      runCommand(['pr', 'create', '--title', 'feat: new'])
+    ).rejects.toThrow('process.exit(1)')
+  })
+
+  it('exits with 1 when --source is an empty string', async () => {
+    await expect(
+      runCommand(['pr', 'create', '--title', 'feat: new', '--source', ''])
+    ).rejects.toThrow('process.exit(1)')
+  })
 })
