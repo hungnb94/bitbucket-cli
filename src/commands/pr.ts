@@ -24,12 +24,13 @@ function requireAuth(): void {
 
 function getContext(flags?: { workspace?: string; repo?: string }): { workspace: string; repo: string } {
   try {
-    const inferred = (flags?.workspace && flags?.repo)
-      ? null
-      : getRepoContext()
+    if (flags?.workspace && flags?.repo) {
+      return { workspace: flags.workspace, repo: flags.repo }
+    }
+    const inferred = getRepoContext()
     return {
-      workspace: flags?.workspace ?? inferred!.workspace,
-      repo:      flags?.repo      ?? inferred!.repo,
+      workspace: flags?.workspace ?? inferred.workspace,
+      repo:      flags?.repo      ?? inferred.repo,
     }
   } catch (error) {
     console.error(chalk.red('✗') + ' ' + (error instanceof Error ? error.message : String(error)))
