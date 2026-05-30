@@ -138,7 +138,8 @@ export async function getPullRequestDiffStat(
   return withRetry(async () => {
     const client = buildClient()
     const response = await client.get<{ values: BitbucketDiffstatEntry[] }>(
-      `/repositories/${workspace}/${repo}/pullrequests/${id}/diffstat`
+      `/repositories/${workspace}/${repo}/pullrequests/${id}/diffstat`,
+      { params: { pagelen: 2000 } }
     )
     const values = response.data.values
     return {

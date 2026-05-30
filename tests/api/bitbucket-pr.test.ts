@@ -33,7 +33,7 @@ function makeAxiosError(status: number | null, code?: string) {
   err.isAxiosError = true
   if (status !== null) err.response = { status }
   if (code) err.code = code
-  vi.mocked(axios.isAxiosError).mockReturnValue(true)
+  vi.mocked(axios.isAxiosError).mockReturnValueOnce(true).mockReturnValueOnce(true)
   return err
 }
 
@@ -125,7 +125,10 @@ describe('getPullRequestDiffStat', () => {
     })
     const result = await getPullRequestDiffStat(WS, REPO, 42)
     expect(result).toEqual({ additions: 15, deletions: 4, filesChanged: 2 })
-    expect(mockGet).toHaveBeenCalledWith('/repositories/myworkspace/myrepo/pullrequests/42/diffstat')
+    expect(mockGet).toHaveBeenCalledWith(
+      '/repositories/myworkspace/myrepo/pullrequests/42/diffstat',
+      { params: { pagelen: 2000 } }
+    )
   })
 })
 
