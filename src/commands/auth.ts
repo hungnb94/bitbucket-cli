@@ -43,7 +43,7 @@ export function createAuthCommand(): Command {
     .description('Log in with your Atlassian email and API token')
     .option('--email <email>', 'Email (non-interactive)')
     .option('--token <token>', 'API token (non-interactive)')
-    .option('--yes', 'Overwrite existing credentials without prompting')
+    .option('-y, --yes', 'Overwrite existing credentials without prompting')
     .action(async (options) => {
       const state = getAuthState()
 
@@ -105,7 +105,7 @@ export function createAuthCommand(): Command {
   auth
     .command('logout')
     .description('Remove saved credentials')
-    .option('--yes', 'Skip confirmation prompt')
+    .option('-y, --yes', 'Skip confirmation prompt')
     .action(async (options) => {
       const state = getAuthState()
 

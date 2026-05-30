@@ -115,7 +115,7 @@ export function createPrCommand(): Command {
     .command('approve')
     .description('Approve a pull request')
     .argument('<id>', 'PR ID')
-    .option('--yes', 'Skip confirmation prompt')
+    .option('-y, --yes', 'Skip confirmation prompt')
     .action(async (id, options) => {
       requireAuth()
       const { workspace, repo } = getContext()
@@ -144,7 +144,7 @@ export function createPrCommand(): Command {
     .command('decline')
     .description('Decline a pull request')
     .argument('<id>', 'PR ID')
-    .option('--yes', 'Skip confirmation prompt')
+    .option('-y, --yes', 'Skip confirmation prompt')
     .action(async (id, options) => {
       requireAuth()
       const { workspace, repo } = getContext()
