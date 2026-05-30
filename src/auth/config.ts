@@ -8,6 +8,11 @@ export type Credentials = {
   apiToken: string
 }
 
+export type AuthState =
+  | { source: 'env'; credentials: Credentials }
+  | { source: 'file'; credentials: Credentials }
+  | { source: 'none' }
+
 type Schema = Credentials
 
 const store = new Conf<Schema>({
@@ -15,11 +20,23 @@ const store = new Conf<Schema>({
   cwd: path.join(os.homedir(), '.config', 'bitbucket-cli'),
 })
 
+export function getAuthState(): AuthState {
+  const envEmail = process.env.BITBUCKET_EMAIL
+  const envToken = process.env.BITBUCKET_API_TOKEN
+  if (envEmail && envToken) {
+    return { source: 'env', credentials: { email: envEmail, apiToken: envToken } }
+  }
+  const fileEmail = store.get('email') as string | undefined
+  const fileToken = store.get('apiToken') as string | undefined
+  if (fileEmail && fileToken) {
+    return { source: 'file', credentials: { email: fileEmail, apiToken: fileToken } }
+  }
+  return { source: 'none' }
+}
+
 export function getCredentials(): Credentials | null {
-  const email = process.env.BITBUCKET_EMAIL ?? (store.get('email') as string | undefined)
-  const apiToken = process.env.BITBUCKET_API_TOKEN ?? (store.get('apiToken') as string | undefined)
-  if (!email || !apiToken) return null
-  return { email, apiToken }
+  const state = getAuthState()
+  return state.source === 'none' ? null : state.credentials
 }
 
 export function saveCredentials(creds: Credentials): void {

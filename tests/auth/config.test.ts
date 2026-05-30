@@ -17,8 +17,13 @@ vi.mock('fs', () => ({
   chmodSync: vi.fn(),
 }))
 
-const { getCredentials, saveCredentials, clearCredentials, getConfigPath } =
+const { getCredentials, saveCredentials, clearCredentials, getConfigPath, getAuthState } =
   await import('../../src/auth/config.js')
+
+afterEach(() => {
+  delete process.env.BITBUCKET_EMAIL
+  delete process.env.BITBUCKET_API_TOKEN
+})
 
 beforeEach(() => {
   Object.keys(mockData).forEach(k => delete mockData[k])
@@ -73,11 +78,6 @@ describe('getConfigPath', () => {
 })
 
 describe('env var override', () => {
-  afterEach(() => {
-    delete process.env.BITBUCKET_EMAIL
-    delete process.env.BITBUCKET_API_TOKEN
-  })
-
   it('uses BITBUCKET_EMAIL and BITBUCKET_API_TOKEN over config file values', () => {
     mockData['email'] = 'config@example.com'
     mockData['apiToken'] = 'config-token'
@@ -88,5 +88,60 @@ describe('env var override', () => {
 
     expect(creds?.email).toBe('env@example.com')
     expect(creds?.apiToken).toBe('env-token')
+  })
+})
+
+describe('getAuthState', () => {
+  it('returns source:none when nothing is set', () => {
+    expect(getAuthState()).toEqual({ source: 'none' })
+  })
+
+  it('returns source:none when only email env var is set', () => {
+    process.env.BITBUCKET_EMAIL = 'env@example.com'
+    expect(getAuthState()).toEqual({ source: 'none' })
+  })
+
+  it('returns source:none when only token env var is set', () => {
+    process.env.BITBUCKET_API_TOKEN = 'env-token'
+    expect(getAuthState()).toEqual({ source: 'none' })
+  })
+
+  it('returns source:env when both env vars are set', () => {
+    process.env.BITBUCKET_EMAIL = 'env@example.com'
+    process.env.BITBUCKET_API_TOKEN = 'env-token'
+    expect(getAuthState()).toEqual({
+      source: 'env',
+      credentials: { email: 'env@example.com', apiToken: 'env-token' },
+    })
+  })
+
+  it('returns source:env even when file creds also exist', () => {
+    mockData['email'] = 'file@example.com'
+    mockData['apiToken'] = 'file-token'
+    process.env.BITBUCKET_EMAIL = 'env@example.com'
+    process.env.BITBUCKET_API_TOKEN = 'env-token'
+    expect(getAuthState()).toEqual({
+      source: 'env',
+      credentials: { email: 'env@example.com', apiToken: 'env-token' },
+    })
+  })
+
+  it('returns source:file when file creds exist and no env vars', () => {
+    mockData['email'] = 'file@example.com'
+    mockData['apiToken'] = 'file-token'
+    expect(getAuthState()).toEqual({
+      source: 'file',
+      credentials: { email: 'file@example.com', apiToken: 'file-token' },
+    })
+  })
+
+  it('returns source:none when only email is in file', () => {
+    mockData['email'] = 'file@example.com'
+    expect(getAuthState()).toEqual({ source: 'none' })
+  })
+
+  it('returns source:none when only token is in file', () => {
+    mockData['apiToken'] = 'file-token'
+    expect(getAuthState()).toEqual({ source: 'none' })
   })
 })
