@@ -49,6 +49,21 @@ $ bitbucket auth login
 ✓ Credentials saved to ~/.config/bitbucket-cli/config.json
 ```
 
+Non-interactive:
+
+```console
+$ bitbucket auth login --email user@example.com --token <api-token>
+
+  Verifying credentials...
+✓ Verified — welcome John Doe
+✓ Credentials saved to ~/.config/bitbucket-cli/config.json
+```
+
+Options:
+- `--email <email>` — Email address (non-interactive; must be used with `--token`)
+- `--token <token>` — API token (non-interactive; must be used with `--email`)
+- `-y, --yes` — Overwrite existing credentials without prompting
+
 ### Logout
 
 ```console
@@ -57,6 +72,9 @@ $ bitbucket auth logout
 ? Remove saved credentials? (y/N) y
 ✓ Removed ~/.config/bitbucket-cli/config.json
 ```
+
+Options:
+- `-y, --yes` — Skip confirmation prompt
 
 ### Whoami
 
@@ -102,17 +120,19 @@ $ bitbucket pr diff 42
 
 ```console
 $ bitbucket pr approve 42
+$ bitbucket pr approve 42 --yes
 ```
 
-Prompts for confirmation before approving.
+Prompts for confirmation before approving. Use `-y, --yes` to skip the prompt (non-interactive).
 
 ### Decline
 
 ```console
 $ bitbucket pr decline 42
+$ bitbucket pr decline 42 --yes
 ```
 
-Prompts for confirmation before declining.
+Prompts for confirmation before declining. Use `-y, --yes` to skip the prompt (non-interactive).
 
 ### Comment
 

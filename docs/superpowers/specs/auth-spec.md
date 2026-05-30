@@ -17,9 +17,9 @@ Auth uses **HTTP Basic Auth** (`email:apiToken` base64-encoded) for all API call
 ## Commands
 
 ```
-bitbucket auth login     # interactive prompt, validates token, saves config
-bitbucket auth logout    # prompts confirmation, deletes config
-bitbucket auth whoami    # prints current user info from Bitbucket API
+bitbucket auth login [--email <email> --token <token>] [-y]   # validate token, save config
+bitbucket auth logout [-y]                                     # prompts confirmation, deletes config
+bitbucket auth whoami                                          # prints current user info from Bitbucket API
 ```
 
 ---
@@ -165,6 +165,24 @@ $ bitbucket auth login
 ✓ Credentials saved to ~/.config/bitbucket-cli/config.json
 ```
 
+**Options:**
+
+| Flag | Description |
+|---|---|
+| `--email <email>` | Email address (non-interactive; must be used with `--token`) |
+| `--token <token>` | API token (non-interactive; must be used with `--email`) |
+| `-y, --yes` | Overwrite existing credentials without prompting |
+
+**Non-interactive login:**
+
+```
+$ bitbucket auth login --email user@example.com --token <api-token>
+
+  Verifying credentials...
+✓ Verified — welcome John Doe
+✓ Credentials saved to ~/.config/bitbucket-cli/config.json
+```
+
 ### Login edge cases
 
 **Decision tree:**
@@ -172,12 +190,17 @@ $ bitbucket auth login
 ```
 auth login
   ├── source === 'env'  → error + exit(1)
-  ├── source === 'file' → confirm re-authenticate → no: exit / yes: full login flow
-  └── source === 'none' → full login flow
+  ├── source === 'file' → no --yes: confirm re-authenticate → no: exit / yes: login flow
+  │                     → with --yes: skip confirm, proceed to login flow
+  └── source === 'none' → login flow
+        ├── --email + --token both set → skip guide + prompts, validate immediately
+        ├── only one of --email/--token set → error + exit(1)
+        └── neither set → printLoginGuide(), interactive prompts
 ```
 
 - **Env vars set:** `✗ Credentials are set via environment variables (BITBUCKET_EMAIL, BITBUCKET_API_TOKEN). Unset them to use auth login.`
 - **Already logged in:** `Already logged in as <email>. Re-authenticate?` (default: false) — if yes, runs full login flow.
+- **Only one of `--email`/`--token`:** `✗ --email and --token must be used together` + `exit(1)`.
 - **Verification failure:** spinner fails, prints error message + hint to re-run `auth login`, then `exit(1)`.
 
 ---
@@ -190,6 +213,14 @@ $ bitbucket auth logout
 ? Remove saved credentials? (y/N) y
 ✓ Removed ~/.config/bitbucket-cli/config.json
 ```
+
+**Options:**
+
+| Flag | Description |
+|---|---|
+| `-y, --yes` | Skip the "Remove saved credentials?" confirmation prompt |
+
+Non-interactive: `bitbucket auth logout --yes`
 
 ### Logout edge cases
 
