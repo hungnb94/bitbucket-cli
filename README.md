@@ -68,6 +68,63 @@ $ bitbucket auth whoami
   Account ID:   557058:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 ```
 
+## Pull Requests
+
+All `pr` subcommands auto-detect the workspace and repository from the current directory's git remote.
+
+### List
+
+```console
+$ bitbucket pr list
+$ bitbucket pr list --state merged
+$ bitbucket pr list --limit 50
+```
+
+Options:
+- `--state <state>` — Filter by state: `open`, `merged`, `declined`, `all` (default: `open`)
+- `--limit <n>` — Number of PRs to show (default: `20`)
+
+### View
+
+```console
+$ bitbucket pr view 42
+```
+
+Shows PR details including title, state, author, reviewers, and changed files.
+
+### Diff
+
+```console
+$ bitbucket pr diff 42
+```
+
+### Approve
+
+```console
+$ bitbucket pr approve 42
+```
+
+Prompts for confirmation before approving.
+
+### Decline
+
+```console
+$ bitbucket pr decline 42
+```
+
+Prompts for confirmation before declining.
+
+### Comment
+
+```console
+$ bitbucket pr comment 42 "Looks good!"
+$ bitbucket pr comment 42 "Fix this" --file src/foo.ts --line 10
+```
+
+Options:
+- `--file <path>` — File path for an inline comment (must be used with `--line`)
+- `--line <n>` — Line number for an inline comment (must be used with `--file`)
+
 ## Configuration
 
 Credentials are saved to `~/.config/bitbucket-cli/config.json` with permissions `600`.
