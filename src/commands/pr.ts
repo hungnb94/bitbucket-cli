@@ -14,7 +14,6 @@ import {
   createPullRequest,
 } from '../api/bitbucket.js'
 import { getCredentials } from '../auth/index.js'
-import { resolveConfirm } from '../utils/confirm.js'
 
 function requireAuth(): void {
   if (!getCredentials()) {
@@ -127,7 +126,7 @@ export function createPrCommand(): Command {
           fetchSpinner = ora('Fetching pull request...').start()
           const pullRequest = await getPullRequest(workspace, repo, prId)
           fetchSpinner.stop()
-          const confirmed = await resolveConfirm(false, `Approve PR #${prId} "${pullRequest.title}"?`)
+          const confirmed = await confirm({ message: `Approve PR #${prId} "${pullRequest.title}"?`, default: false })
           if (!confirmed) { console.log(chalk.dim('Cancelled.')); return }
         }
         actionSpinner = ora('Approving...').start()
@@ -156,7 +155,7 @@ export function createPrCommand(): Command {
           fetchSpinner = ora('Fetching pull request...').start()
           const pullRequest = await getPullRequest(workspace, repo, prId)
           fetchSpinner.stop()
-          const confirmed = await resolveConfirm(false, `Decline PR #${prId} "${pullRequest.title}"?`)
+          const confirmed = await confirm({ message: `Decline PR #${prId} "${pullRequest.title}"?`, default: false })
           if (!confirmed) { console.log(chalk.dim('Cancelled.')); return }
         }
         actionSpinner = ora('Declining...').start()

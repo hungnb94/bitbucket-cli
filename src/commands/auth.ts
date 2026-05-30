@@ -1,5 +1,5 @@
 import { Command } from 'commander'
-import { input, password } from '@inquirer/prompts'
+import { input, password, confirm } from '@inquirer/prompts'
 import chalk from 'chalk'
 import ora from 'ora'
 import {
@@ -57,11 +57,11 @@ export function createAuthCommand(): Command {
 
       if (state.source === 'file') {
         if (!options.yes) {
-          console.error(
-            chalk.red('✗') +
-            ` Already logged in as ${state.credentials.email}. Use --yes to overwrite.`
-          )
-          process.exit(1)
+          const reauth = await confirm({
+            message: `Already logged in as ${state.credentials.email}. Re-authenticate?`,
+            default: false,
+          })
+          if (!reauth) return
         }
       }
 

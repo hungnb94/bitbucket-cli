@@ -98,18 +98,39 @@ describe('auth login', () => {
     errorSpy.mockRestore()
   })
 
-  it('exits with error when already logged in and --yes is not provided', async () => {
+  it('prompts for re-auth when already logged in without --yes and user confirms', async () => {
     mockGetAuthState.mockReturnValueOnce({
       source: 'file',
       credentials: { email: 'file@example.com', apiToken: 'file-token' },
     })
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    mockConfirm.mockResolvedValueOnce(true)
+    mockInput.mockResolvedValueOnce('file@example.com')
+    mockPassword.mockResolvedValueOnce('new-token')
+    mockValidateCredentials.mockResolvedValueOnce({
+      username: 'johndoe',
+      displayName: 'John Doe',
+      accountId: '557058:xxxx',
+    })
 
-    await expect(runCommand(['auth', 'login'])).rejects.toThrow('process.exit(1)')
+    await runCommand(['auth', 'login'])
 
-    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('--yes'))
+    expect(mockSaveCredentials).toHaveBeenCalledWith({
+      email: 'file@example.com',
+      apiToken: 'new-token',
+    })
+  })
+
+  it('aborts login when already logged in without --yes and user declines re-auth', async () => {
+    mockGetAuthState.mockReturnValueOnce({
+      source: 'file',
+      credentials: { email: 'file@example.com', apiToken: 'file-token' },
+    })
+    mockConfirm.mockResolvedValueOnce(false)
+
+    await runCommand(['auth', 'login'])
+
+    expect(mockInput).not.toHaveBeenCalled()
     expect(mockSaveCredentials).not.toHaveBeenCalled()
-    errorSpy.mockRestore()
   })
 
   it('proceeds to interactive login when already logged in with --yes', async () => {
