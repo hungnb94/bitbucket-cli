@@ -243,7 +243,7 @@ export function createPrCommand(): Command {
           console.error(chalk.red('✗') + ' --source branch name cannot be empty.')
           process.exit(1) as never
         }
-        sourceBranch = options.source
+        sourceBranch = options.source.trim()
       } else {
         try {
           sourceBranch = getCurrentBranch()
@@ -254,7 +254,7 @@ export function createPrCommand(): Command {
       }
 
       let targetBranch: string = options.target
-      if (!targetBranch) {
+      if (!targetBranch?.trim()) {
         try {
           targetBranch = detectDefaultTarget()
         } catch (error) {
