@@ -26,3 +26,36 @@ export function getRepoContext(): RepoContext {
 
   throw new Error('Remote origin is not a Bitbucket repository.')
 }
+
+export function getCurrentBranch(): string {
+  let branch: string
+  try {
+    branch = (execSync('git branch --show-current', {
+      encoding: 'utf8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    }) as string).trim()
+  } catch {
+    throw new Error('Could not detect current branch. Are you in a git repo?')
+  }
+  if (!branch) throw new Error('Could not detect current branch. Are you in a git repo?')
+  return branch
+}
+
+export function detectDefaultTarget(): string {
+  try {
+    const mainResult = (execSync('git branch --list main', {
+      encoding: 'utf8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    }) as string).trim()
+    if (mainResult) return 'main'
+
+    const masterResult = (execSync('git branch --list master', {
+      encoding: 'utf8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    }) as string).trim()
+    if (masterResult) return 'master'
+  } catch {
+    throw new Error('Could not detect default target branch. Use --target <branch>.')
+  }
+  throw new Error('Could not detect default target branch. Use --target <branch>.')
+}
