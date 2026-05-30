@@ -46,6 +46,9 @@ function throwApiError(error: AxiosError, prId?: number): never {
   if (error.response?.status === 404) {
     throw new Error(prId !== undefined ? `PR #${prId} not found.` : 'Not found.')
   }
+  if (error.response?.status === 409) {
+    throw new Error('A PR already exists for this branch.')
+  }
   if (error.response) throw new Error(`Request failed with status ${error.response.status}`)
   throw new Error('Connection failed. Check your network connection.')
 }
@@ -195,4 +198,28 @@ export async function postComment(
     if (inline) body.inline = { path: inline.path, to: inline.line }
     await client.post(`/repositories/${workspace}/${repo}/pullrequests/${id}/comments`, body)
   }, id)
+}
+
+export async function createPullRequest(
+  workspace: string,
+  repo: string,
+  title: string,
+  sourceBranch: string,
+  targetBranch: string,
+  description?: string
+): Promise<{ id: number; links: { html: { href: string } } }> {
+  return withRetry(async () => {
+    const client = buildClient()
+    const body: Record<string, unknown> = {
+      title,
+      source: { branch: { name: sourceBranch } },
+      destination: { branch: { name: targetBranch } },
+    }
+    if (description) body.description = description
+    const response = await client.post<{ id: number; links: { html: { href: string } } }>(
+      `/repositories/${workspace}/${repo}/pullrequests`,
+      body
+    )
+    return response.data
+  })
 }
