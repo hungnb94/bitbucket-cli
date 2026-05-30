@@ -134,9 +134,8 @@ export function createPrCommand(): Command {
         await approvePullRequest(workspace, repo, prId)
         actionSpinner.succeed(`PR #${prId} approved`)
       } catch (error) {
-        if (error instanceof Error && error.name === 'ExitPromptError') process.exit(0)
-        actionSpinner?.fail(error instanceof Error ? error.message : 'Unknown error')
-        fetchSpinner?.fail(error instanceof Error ? error.message : 'Unknown error')
+        if (error instanceof Error && error.constructor.name === 'ExitPromptError') process.exit(0)
+        ;(actionSpinner ?? fetchSpinner)?.fail(error instanceof Error ? error.message : 'Unknown error')
         process.exit(1)
       }
     })
@@ -164,9 +163,8 @@ export function createPrCommand(): Command {
         await declinePullRequest(workspace, repo, prId)
         actionSpinner.succeed(`PR #${prId} declined`)
       } catch (error) {
-        if (error instanceof Error && error.name === 'ExitPromptError') process.exit(0)
-        actionSpinner?.fail(error instanceof Error ? error.message : 'Unknown error')
-        fetchSpinner?.fail(error instanceof Error ? error.message : 'Unknown error')
+        if (error instanceof Error && error.constructor.name === 'ExitPromptError') process.exit(0)
+        ;(actionSpinner ?? fetchSpinner)?.fail(error instanceof Error ? error.message : 'Unknown error')
         process.exit(1)
       }
     })
