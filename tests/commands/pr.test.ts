@@ -106,6 +106,36 @@ describe('pr list', () => {
     mockGetRepoContext.mockImplementation(() => { throw new Error('not a bitbucket repo') })
     await expect(runCommand(['pr', 'list'])).rejects.toThrow('process.exit(1)')
   })
+
+  it('uses --workspace and --repo flags when both provided, skipping getRepoContext', async () => {
+    mockListPullRequests.mockResolvedValue([MOCK_PR])
+    mockFormatPrList.mockReturnValue('formatted list')
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    await runCommand(['pr', '--workspace', 'flagws', '--repo', 'flagrepo', 'list'])
+    expect(mockGetRepoContext).not.toHaveBeenCalled()
+    expect(mockListPullRequests).toHaveBeenCalledWith('flagws', 'flagrepo', 'open', 20)
+    consoleSpy.mockRestore()
+  })
+
+  it('uses --workspace flag with inferred repo when only --workspace provided', async () => {
+    mockListPullRequests.mockResolvedValue([MOCK_PR])
+    mockFormatPrList.mockReturnValue('formatted list')
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    await runCommand(['pr', '--workspace', 'flagws', 'list'])
+    expect(mockGetRepoContext).toHaveBeenCalled()
+    expect(mockListPullRequests).toHaveBeenCalledWith('flagws', 'myrepo', 'open', 20)
+    consoleSpy.mockRestore()
+  })
+
+  it('uses --repo flag with inferred workspace when only --repo provided', async () => {
+    mockListPullRequests.mockResolvedValue([MOCK_PR])
+    mockFormatPrList.mockReturnValue('formatted list')
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    await runCommand(['pr', '--repo', 'flagrepo', 'list'])
+    expect(mockGetRepoContext).toHaveBeenCalled()
+    expect(mockListPullRequests).toHaveBeenCalledWith('myworkspace', 'flagrepo', 'open', 20)
+    consoleSpy.mockRestore()
+  })
 })
 
 describe('pr view', () => {
@@ -124,6 +154,39 @@ describe('pr view', () => {
   it('exits with 1 for non-integer id', async () => {
     await expect(runCommand(['pr', 'view', 'abc'])).rejects.toThrow('process.exit(1)')
   })
+
+  it('uses --workspace and --repo flags when both provided, skipping getRepoContext', async () => {
+    mockGetPullRequest.mockResolvedValue(MOCK_PR)
+    mockGetPullRequestDiffStat.mockResolvedValue(MOCK_DIFFSTAT)
+    mockFormatPrView.mockReturnValue('formatted view')
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    await runCommand(['pr', '--workspace', 'flagws', '--repo', 'flagrepo', 'view', '42'])
+    expect(mockGetRepoContext).not.toHaveBeenCalled()
+    expect(mockGetPullRequest).toHaveBeenCalledWith('flagws', 'flagrepo', 42)
+    consoleSpy.mockRestore()
+  })
+
+  it('uses --workspace flag with inferred repo when only --workspace provided', async () => {
+    mockGetPullRequest.mockResolvedValue(MOCK_PR)
+    mockGetPullRequestDiffStat.mockResolvedValue(MOCK_DIFFSTAT)
+    mockFormatPrView.mockReturnValue('formatted view')
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    await runCommand(['pr', '--workspace', 'flagws', 'view', '42'])
+    expect(mockGetRepoContext).toHaveBeenCalled()
+    expect(mockGetPullRequest).toHaveBeenCalledWith('flagws', 'myrepo', 42)
+    consoleSpy.mockRestore()
+  })
+
+  it('uses --repo flag with inferred workspace when only --repo provided', async () => {
+    mockGetPullRequest.mockResolvedValue(MOCK_PR)
+    mockGetPullRequestDiffStat.mockResolvedValue(MOCK_DIFFSTAT)
+    mockFormatPrView.mockReturnValue('formatted view')
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    await runCommand(['pr', '--repo', 'flagrepo', 'view', '42'])
+    expect(mockGetRepoContext).toHaveBeenCalled()
+    expect(mockGetPullRequest).toHaveBeenCalledWith('myworkspace', 'flagrepo', 42)
+    consoleSpy.mockRestore()
+  })
 })
 
 describe('pr diff', () => {
@@ -134,6 +197,36 @@ describe('pr diff', () => {
     await runCommand(['pr', 'diff', '42'])
     expect(mockGetPullRequestDiff).toHaveBeenCalledWith('myworkspace', 'myrepo', 42)
     expect(consoleSpy).toHaveBeenCalledWith('colored diff')
+    consoleSpy.mockRestore()
+  })
+
+  it('uses --workspace and --repo flags when both provided, skipping getRepoContext', async () => {
+    mockGetPullRequestDiff.mockResolvedValue('raw diff')
+    mockFormatDiff.mockReturnValue('colored diff')
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    await runCommand(['pr', '--workspace', 'flagws', '--repo', 'flagrepo', 'diff', '42'])
+    expect(mockGetRepoContext).not.toHaveBeenCalled()
+    expect(mockGetPullRequestDiff).toHaveBeenCalledWith('flagws', 'flagrepo', 42)
+    consoleSpy.mockRestore()
+  })
+
+  it('uses --workspace flag with inferred repo when only --workspace provided', async () => {
+    mockGetPullRequestDiff.mockResolvedValue('raw diff')
+    mockFormatDiff.mockReturnValue('colored diff')
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    await runCommand(['pr', '--workspace', 'flagws', 'diff', '42'])
+    expect(mockGetRepoContext).toHaveBeenCalled()
+    expect(mockGetPullRequestDiff).toHaveBeenCalledWith('flagws', 'myrepo', 42)
+    consoleSpy.mockRestore()
+  })
+
+  it('uses --repo flag with inferred workspace when only --repo provided', async () => {
+    mockGetPullRequestDiff.mockResolvedValue('raw diff')
+    mockFormatDiff.mockReturnValue('colored diff')
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    await runCommand(['pr', '--repo', 'flagrepo', 'diff', '42'])
+    expect(mockGetRepoContext).toHaveBeenCalled()
+    expect(mockGetPullRequestDiff).toHaveBeenCalledWith('myworkspace', 'flagrepo', 42)
     consoleSpy.mockRestore()
   })
 })
@@ -178,6 +271,27 @@ describe('pr approve', () => {
     mockApprovePullRequest.mockRejectedValue(new Error('403 Forbidden'))
     await expect(runCommand(['pr', 'approve', '42', '--yes'])).rejects.toThrow('process.exit(1)')
   })
+
+  it('uses --workspace and --repo flags when both provided, skipping getRepoContext', async () => {
+    mockApprovePullRequest.mockResolvedValue(undefined)
+    await runCommand(['pr', '--workspace', 'flagws', '--repo', 'flagrepo', 'approve', '42', '--yes'])
+    expect(mockGetRepoContext).not.toHaveBeenCalled()
+    expect(mockApprovePullRequest).toHaveBeenCalledWith('flagws', 'flagrepo', 42)
+  })
+
+  it('uses --workspace flag with inferred repo when only --workspace provided', async () => {
+    mockApprovePullRequest.mockResolvedValue(undefined)
+    await runCommand(['pr', '--workspace', 'flagws', 'approve', '42', '--yes'])
+    expect(mockGetRepoContext).toHaveBeenCalled()
+    expect(mockApprovePullRequest).toHaveBeenCalledWith('flagws', 'myrepo', 42)
+  })
+
+  it('uses --repo flag with inferred workspace when only --repo provided', async () => {
+    mockApprovePullRequest.mockResolvedValue(undefined)
+    await runCommand(['pr', '--repo', 'flagrepo', 'approve', '42', '--yes'])
+    expect(mockGetRepoContext).toHaveBeenCalled()
+    expect(mockApprovePullRequest).toHaveBeenCalledWith('myworkspace', 'flagrepo', 42)
+  })
 })
 
 describe('pr decline', () => {
@@ -210,6 +324,27 @@ describe('pr decline', () => {
     mockDeclinePullRequest.mockRejectedValue(new Error('403 Forbidden'))
     await expect(runCommand(['pr', 'decline', '42', '--yes'])).rejects.toThrow('process.exit(1)')
   })
+
+  it('uses --workspace and --repo flags when both provided, skipping getRepoContext', async () => {
+    mockDeclinePullRequest.mockResolvedValue(undefined)
+    await runCommand(['pr', '--workspace', 'flagws', '--repo', 'flagrepo', 'decline', '42', '--yes'])
+    expect(mockGetRepoContext).not.toHaveBeenCalled()
+    expect(mockDeclinePullRequest).toHaveBeenCalledWith('flagws', 'flagrepo', 42)
+  })
+
+  it('uses --workspace flag with inferred repo when only --workspace provided', async () => {
+    mockDeclinePullRequest.mockResolvedValue(undefined)
+    await runCommand(['pr', '--workspace', 'flagws', 'decline', '42', '--yes'])
+    expect(mockGetRepoContext).toHaveBeenCalled()
+    expect(mockDeclinePullRequest).toHaveBeenCalledWith('flagws', 'myrepo', 42)
+  })
+
+  it('uses --repo flag with inferred workspace when only --repo provided', async () => {
+    mockDeclinePullRequest.mockResolvedValue(undefined)
+    await runCommand(['pr', '--repo', 'flagrepo', 'decline', '42', '--yes'])
+    expect(mockGetRepoContext).toHaveBeenCalled()
+    expect(mockDeclinePullRequest).toHaveBeenCalledWith('myworkspace', 'flagrepo', 42)
+  })
 })
 
 describe('pr comment', () => {
@@ -237,6 +372,27 @@ describe('pr comment', () => {
     await expect(
       runCommand(['pr', 'comment', '42', 'nit', '--line', '15'])
     ).rejects.toThrow('process.exit(1)')
+  })
+
+  it('uses --workspace and --repo flags when both provided, skipping getRepoContext', async () => {
+    mockPostComment.mockResolvedValue(undefined)
+    await runCommand(['pr', '--workspace', 'flagws', '--repo', 'flagrepo', 'comment', '42', 'looks good'])
+    expect(mockGetRepoContext).not.toHaveBeenCalled()
+    expect(mockPostComment).toHaveBeenCalledWith('flagws', 'flagrepo', 42, 'looks good', undefined)
+  })
+
+  it('uses --workspace flag with inferred repo when only --workspace provided', async () => {
+    mockPostComment.mockResolvedValue(undefined)
+    await runCommand(['pr', '--workspace', 'flagws', 'comment', '42', 'looks good'])
+    expect(mockGetRepoContext).toHaveBeenCalled()
+    expect(mockPostComment).toHaveBeenCalledWith('flagws', 'myrepo', 42, 'looks good', undefined)
+  })
+
+  it('uses --repo flag with inferred workspace when only --repo provided', async () => {
+    mockPostComment.mockResolvedValue(undefined)
+    await runCommand(['pr', '--repo', 'flagrepo', 'comment', '42', 'looks good'])
+    expect(mockGetRepoContext).toHaveBeenCalled()
+    expect(mockPostComment).toHaveBeenCalledWith('myworkspace', 'flagrepo', 42, 'looks good', undefined)
   })
 })
 
@@ -394,5 +550,41 @@ describe('pr create', () => {
     await expect(
       runCommand(['pr', 'create', '--title', 'feat: new', '--source', ''])
     ).rejects.toThrow('process.exit(1)')
+  })
+
+  it('uses --workspace and --repo flags when both provided, skipping getRepoContext', async () => {
+    mockCreatePullRequest.mockResolvedValue({
+      id: 43,
+      links: { html: { href: 'https://bitbucket.org/flagws/flagrepo/pull-requests/43' } },
+    })
+    await runCommand(['pr', '--workspace', 'flagws', '--repo', 'flagrepo', 'create', '--title', 'feat: new', '--yes'])
+    expect(mockGetRepoContext).not.toHaveBeenCalled()
+    expect(mockCreatePullRequest).toHaveBeenCalledWith(
+      'flagws', 'flagrepo', 'feat: new', 'feature/new-feature', 'main', undefined
+    )
+  })
+
+  it('uses --workspace flag with inferred repo when only --workspace provided', async () => {
+    mockCreatePullRequest.mockResolvedValue({
+      id: 43,
+      links: { html: { href: 'https://bitbucket.org/flagws/myrepo/pull-requests/43' } },
+    })
+    await runCommand(['pr', '--workspace', 'flagws', 'create', '--title', 'feat: new', '--yes'])
+    expect(mockGetRepoContext).toHaveBeenCalled()
+    expect(mockCreatePullRequest).toHaveBeenCalledWith(
+      'flagws', 'myrepo', 'feat: new', 'feature/new-feature', 'main', undefined
+    )
+  })
+
+  it('uses --repo flag with inferred workspace when only --repo provided', async () => {
+    mockCreatePullRequest.mockResolvedValue({
+      id: 43,
+      links: { html: { href: 'https://bitbucket.org/myworkspace/flagrepo/pull-requests/43' } },
+    })
+    await runCommand(['pr', '--repo', 'flagrepo', 'create', '--title', 'feat: new', '--yes'])
+    expect(mockGetRepoContext).toHaveBeenCalled()
+    expect(mockCreatePullRequest).toHaveBeenCalledWith(
+      'myworkspace', 'flagrepo', 'feat: new', 'feature/new-feature', 'main', undefined
+    )
   })
 })
