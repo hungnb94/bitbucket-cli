@@ -3,8 +3,9 @@ export {
   saveCredentials,
   clearCredentials,
   getConfigPath,
+  getAuthState,
 } from './config.js'
-export type { Credentials } from './config.js'
+export type { Credentials, AuthState } from './config.js'
 
 export { validateCredentials } from './credentials.js'
 export type { UserInfo } from './credentials.js'
