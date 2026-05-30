@@ -231,17 +231,22 @@ export function createPrCommand(): Command {
     .requiredOption('--title <title>', 'PR title')
     .option('--description <text>', 'PR description')
     .option('--target <branch>', 'Target branch (default: main or master)')
+    .option('--source <branch>', 'Source branch (default: current branch)')
     .option('-y, --yes', 'Skip confirmation prompt')
     .action(async (options) => {
       requireAuth()
       const { workspace, repo } = getContext()
 
       let sourceBranch: string
-      try {
-        sourceBranch = getCurrentBranch()
-      } catch (error) {
-        console.error(chalk.red('✗') + ' ' + (error instanceof Error ? error.message : String(error)))
-        process.exit(1) as never
+      if (options.source !== undefined) {
+        sourceBranch = options.source
+      } else {
+        try {
+          sourceBranch = getCurrentBranch()
+        } catch (error) {
+          console.error(chalk.red('✗') + ' ' + (error instanceof Error ? error.message : String(error)))
+          process.exit(1) as never
+        }
       }
 
       let targetBranch: string = options.target
