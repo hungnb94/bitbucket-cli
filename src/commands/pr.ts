@@ -186,9 +186,17 @@ export function createPrCommand(): Command {
 
       const { workspace, repo } = getContext()
       const prId = parseId(id)
+      let lineNum: number | undefined
+      if (options.line !== undefined) {
+        lineNum = parseInt(options.line, 10)
+        if (isNaN(lineNum) || lineNum < 1) {
+          console.error(chalk.red('✗') + ' --line must be a positive integer.')
+          process.exit(1)
+        }
+      }
       const inline =
-        options.file && options.line
-          ? { path: options.file, line: parseInt(options.line, 10) }
+        options.file && lineNum !== undefined
+          ? { path: options.file, line: lineNum }
           : undefined
 
       const spinner = ora('Posting comment...').start()

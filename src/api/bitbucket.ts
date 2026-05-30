@@ -41,13 +41,18 @@ type BitbucketDiffstatEntry = {
 function throwApiError(error: AxiosError, prId?: number): never {
   if (error.response?.status === 401) throw new Error('401 Unauthorized')
   if (error.response?.status === 403) {
-    throw new Error('403 Forbidden: token missing required scopes, check your token scopes')
+    throw new Error('403 Forbidden: token missing required scopes.')
   }
   if (error.response?.status === 404) {
     throw new Error(prId !== undefined ? `PR #${prId} not found.` : 'Not found.')
   }
   if (error.response) throw new Error(`Request failed with status ${error.response.status}`)
   throw new Error('Connection failed. Check your network connection.')
+}
+
+function throwRetryError(error: AxiosError, prId?: number): never {
+  if (error.response) return throwApiError(error, prId)
+  throw new Error('Connection failed after retry.')
 }
 
 async function withRetry<T>(fn: () => Promise<T>, prId?: number): Promise<T> {
@@ -61,7 +66,7 @@ async function withRetry<T>(fn: () => Promise<T>, prId?: number): Promise<T> {
       try {
         return await fn()
       } catch (retryError) {
-        if (axios.isAxiosError(retryError)) throwApiError(retryError, prId)
+        if (axios.isAxiosError(retryError)) throwRetryError(retryError, prId)
         throw retryError
       }
     }
@@ -160,13 +165,10 @@ export async function approvePullRequest(
   repo: string,
   id: number
 ): Promise<void> {
-  try {
+  return withRetry(async () => {
     const client = buildClient()
     await client.post(`/repositories/${workspace}/${repo}/pullrequests/${id}/approve`)
-  } catch (error) {
-    if (axios.isAxiosError(error)) throwApiError(error, id)
-    throw error
-  }
+  }, id)
 }
 
 export async function declinePullRequest(
@@ -174,13 +176,10 @@ export async function declinePullRequest(
   repo: string,
   id: number
 ): Promise<void> {
-  try {
+  return withRetry(async () => {
     const client = buildClient()
     await client.post(`/repositories/${workspace}/${repo}/pullrequests/${id}/decline`)
-  } catch (error) {
-    if (axios.isAxiosError(error)) throwApiError(error, id)
-    throw error
-  }
+  }, id)
 }
 
 export async function postComment(
