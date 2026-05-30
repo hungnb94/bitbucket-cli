@@ -126,11 +126,12 @@ export function createPrCommand(): Command {
           message: `Approve PR #${prId} "${pullRequest.title}"?`,
           default: false,
         })
-        if (!confirmed) return
+        if (!confirmed) { console.log(chalk.dim('Cancelled.')); return }
         actionSpinner = ora('Approving...').start()
         await approvePullRequest(workspace, repo, prId)
         actionSpinner.succeed(`PR #${prId} approved`)
       } catch (error) {
+        if (error instanceof Error && error.constructor.name === 'ExitPromptError') process.exit(0)
         actionSpinner?.fail(error instanceof Error ? error.message : 'Unknown error')
         if (!actionSpinner) {
           spinner.fail(error instanceof Error ? error.message : 'Unknown error')
@@ -156,11 +157,12 @@ export function createPrCommand(): Command {
           message: `Decline PR #${prId} "${pullRequest.title}"?`,
           default: false,
         })
-        if (!confirmed) return
+        if (!confirmed) { console.log(chalk.dim('Cancelled.')); return }
         actionSpinner = ora('Declining...').start()
         await declinePullRequest(workspace, repo, prId)
         actionSpinner.succeed(`PR #${prId} declined`)
       } catch (error) {
+        if (error instanceof Error && error.constructor.name === 'ExitPromptError') process.exit(0)
         actionSpinner?.fail(error instanceof Error ? error.message : 'Unknown error')
         if (!actionSpinner) {
           spinner.fail(error instanceof Error ? error.message : 'Unknown error')

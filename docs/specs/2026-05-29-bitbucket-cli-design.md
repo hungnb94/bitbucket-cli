@@ -54,10 +54,8 @@ Credentials saved to `~/.config/bitbucket-cli/config.json` via the `conf` librar
 
 ```json
 {
-  "username": "username",
-  "appPassword": "xxxxxxxxxxxx",
-  "defaultWorkspace": "workspace",
-  "defaultRepo": "repo"
+  "email": "johndoe@example.com",
+  "appPassword": "xxxxxxxxxxxx"
 }
 ```
 
@@ -77,8 +75,6 @@ bitbucket auth whoami   # prints current user info from API
 ```
 ? Bitbucket username: hung
 ? App Password: **********************
-? Default workspace: bio-rithm
-? Default repo (optional): femom_mobile_android
 ✓ Credentials saved to ~/.config/bitbucket-cli/config.json
 ```
 

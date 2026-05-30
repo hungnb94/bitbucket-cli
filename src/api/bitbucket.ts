@@ -189,13 +189,10 @@ export async function postComment(
   message: string,
   inline?: { path: string; line: number }
 ): Promise<void> {
-  try {
+  return withRetry(async () => {
     const client = buildClient()
     const body: Record<string, unknown> = { content: { raw: message } }
     if (inline) body.inline = { path: inline.path, to: inline.line }
     await client.post(`/repositories/${workspace}/${repo}/pullrequests/${id}/comments`, body)
-  } catch (error) {
-    if (axios.isAxiosError(error)) throwApiError(error, id)
-    throw error
-  }
+  }, id)
 }
