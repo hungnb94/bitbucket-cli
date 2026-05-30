@@ -61,14 +61,14 @@ export function createAuthCommand(): Command {
 
       printLoginGuide()
 
-      const email = await input({ message: 'Email:' })
+      const email = (await input({ message: 'Email:' })).trim()
       const apiToken = await password({ message: 'API token:', mask: '*' })
 
       const spinner = ora('Verifying credentials...').start()
       try {
         const userInfo = await validateCredentials({ email, apiToken })
-        spinner.succeed(`Verified — welcome ${userInfo.displayName}`)
         saveCredentials({ email, apiToken })
+        spinner.succeed(`Verified — welcome ${userInfo.displayName}`)
         console.log(chalk.green('✓') + ` Credentials saved to ${getConfigPath()}`)
       } catch (error) {
         spinner.fail(

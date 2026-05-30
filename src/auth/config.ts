@@ -50,7 +50,13 @@ export function saveCredentials(creds: Credentials): void {
 }
 
 export function clearCredentials(): void {
+  const filePath = store.path
   store.clear()
+  try {
+    fs.unlinkSync(filePath)
+  } catch {
+    // file may not exist
+  }
 }
 
 export function getConfigPath(): string {
