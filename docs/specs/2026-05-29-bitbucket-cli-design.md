@@ -123,27 +123,10 @@ Flags:
 
 ---
 
-## AI Review — `bitbucket pr review <id>`
-
-Integration with Claude Code CLI (`claude`).
-
-**Flow:**
-1. Fetch PR metadata and diff from Bitbucket API
-2. Write diff to a temp file
-3. Invoke `claude` CLI with a structured review prompt (correctness, style, security, test coverage)
-4. Stream Claude's output to terminal
-5. Prompt: `Post this review as a PR comment? (y/N)`
-6. If yes → POST review text as a PR comment via Bitbucket API
-
-**Requirement:** `claude` CLI must be installed and authenticated.
-
----
-
 ## Error Handling
 
 - Missing credentials → prompt user to run `bitbucket auth login`
 - API errors → display HTTP status + Bitbucket error message
-- `claude` not found → print install instructions
 - Network timeout → retry once, then fail with clear message
 
 ---
