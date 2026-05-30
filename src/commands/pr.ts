@@ -239,6 +239,10 @@ export function createPrCommand(): Command {
 
       let sourceBranch: string
       if (options.source !== undefined) {
+        if (!options.source.trim()) {
+          console.error(chalk.red('✗') + ' --source branch name cannot be empty.')
+          process.exit(1) as never
+        }
         sourceBranch = options.source
       } else {
         try {

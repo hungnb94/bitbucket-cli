@@ -380,4 +380,19 @@ describe('pr create', () => {
       'myworkspace', 'myrepo', 'feat: new', 'other-branch', 'main', undefined
     )
   })
+
+  it('exits with 1 when git detection fails and --source is not provided', async () => {
+    mockGetCurrentBranch.mockImplementation(() => {
+      throw new Error('Could not detect current branch. Are you in a git repo?')
+    })
+    await expect(
+      runCommand(['pr', 'create', '--title', 'feat: new'])
+    ).rejects.toThrow('process.exit(1)')
+  })
+
+  it('exits with 1 when --source is an empty string', async () => {
+    await expect(
+      runCommand(['pr', 'create', '--title', 'feat: new', '--source', ''])
+    ).rejects.toThrow('process.exit(1)')
+  })
 })
