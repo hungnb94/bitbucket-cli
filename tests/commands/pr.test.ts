@@ -301,4 +301,20 @@ describe('pr create', () => {
     await runCommand(['pr', 'create', '--title', 'feat: new feature', '--yes'])
     expect(mockSpinner.succeed).toHaveBeenCalledWith('PR #43 created: https://bitbucket.org/ws/repo/pull-requests/43')
   })
+
+  it('exits with 1 when createPullRequest throws', async () => {
+    mockCreatePullRequest.mockRejectedValue(new Error('A PR already exists for this branch.'))
+    await expect(
+      runCommand(['pr', 'create', '--title', 'feat: new', '--yes'])
+    ).rejects.toThrow('process.exit(1)')
+  })
+
+  it('exits with 1 when detectDefaultTarget throws', async () => {
+    mockDetectDefaultTarget.mockImplementation(() => {
+      throw new Error('Could not detect default target branch. Use --target <branch>.')
+    })
+    await expect(
+      runCommand(['pr', 'create', '--title', 'feat: new'])
+    ).rejects.toThrow('process.exit(1)')
+  })
 })
