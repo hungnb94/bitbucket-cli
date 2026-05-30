@@ -163,6 +163,16 @@ describe('pr approve', () => {
     mockApprovePullRequest.mockRejectedValue(new Error('403 Forbidden'))
     await expect(runCommand(['pr', 'approve', '42'])).rejects.toThrow('process.exit(1)')
   })
+
+  it('approves immediately with --yes without fetching PR or prompting', async () => {
+    mockApprovePullRequest.mockResolvedValue(undefined)
+
+    await runCommand(['pr', 'approve', '42', '--yes'])
+
+    expect(mockGetPullRequest).not.toHaveBeenCalled()
+    expect(mockConfirm).not.toHaveBeenCalled()
+    expect(mockApprovePullRequest).toHaveBeenCalledWith('myworkspace', 'myrepo', 42)
+  })
 })
 
 describe('pr decline', () => {
@@ -179,6 +189,16 @@ describe('pr decline', () => {
     mockConfirm.mockResolvedValue(true)
     mockDeclinePullRequest.mockRejectedValue(new Error('403 Forbidden'))
     await expect(runCommand(['pr', 'decline', '42'])).rejects.toThrow('process.exit(1)')
+  })
+
+  it('declines immediately with --yes without fetching PR or prompting', async () => {
+    mockDeclinePullRequest.mockResolvedValue(undefined)
+
+    await runCommand(['pr', 'decline', '42', '--yes'])
+
+    expect(mockGetPullRequest).not.toHaveBeenCalled()
+    expect(mockConfirm).not.toHaveBeenCalled()
+    expect(mockDeclinePullRequest).toHaveBeenCalledWith('myworkspace', 'myrepo', 42)
   })
 })
 

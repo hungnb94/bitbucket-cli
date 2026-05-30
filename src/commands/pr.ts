@@ -14,6 +14,7 @@ import {
   createPullRequest,
 } from '../api/bitbucket.js'
 import { getCredentials } from '../auth/index.js'
+import { resolveConfirm } from '../utils/confirm.js'
 
 function requireAuth(): void {
   if (!getCredentials()) {
@@ -114,29 +115,28 @@ export function createPrCommand(): Command {
     .command('approve')
     .description('Approve a pull request')
     .argument('<id>', 'PR ID')
-    .action(async (id) => {
+    .option('--yes', 'Skip confirmation prompt')
+    .action(async (id, options) => {
       requireAuth()
       const { workspace, repo } = getContext()
       const prId = parseId(id)
-      const spinner = ora('Fetching pull request...').start()
+      let fetchSpinner: ReturnType<typeof ora> | undefined
       let actionSpinner: ReturnType<typeof ora> | undefined
       try {
-        const pullRequest = await getPullRequest(workspace, repo, prId)
-        spinner.stop()
-        const confirmed = await confirm({
-          message: `Approve PR #${prId} "${pullRequest.title}"?`,
-          default: false,
-        })
-        if (!confirmed) { console.log(chalk.dim('Cancelled.')); return }
+        if (!options.yes) {
+          fetchSpinner = ora('Fetching pull request...').start()
+          const pullRequest = await getPullRequest(workspace, repo, prId)
+          fetchSpinner.stop()
+          const confirmed = await resolveConfirm(false, `Approve PR #${prId} "${pullRequest.title}"?`)
+          if (!confirmed) { console.log(chalk.dim('Cancelled.')); return }
+        }
         actionSpinner = ora('Approving...').start()
         await approvePullRequest(workspace, repo, prId)
         actionSpinner.succeed(`PR #${prId} approved`)
       } catch (error) {
         if (error instanceof Error && error.name === 'ExitPromptError') process.exit(0)
         actionSpinner?.fail(error instanceof Error ? error.message : 'Unknown error')
-        if (!actionSpinner) {
-          spinner.fail(error instanceof Error ? error.message : 'Unknown error')
-        }
+        fetchSpinner?.fail(error instanceof Error ? error.message : 'Unknown error')
         process.exit(1)
       }
     })
@@ -145,29 +145,28 @@ export function createPrCommand(): Command {
     .command('decline')
     .description('Decline a pull request')
     .argument('<id>', 'PR ID')
-    .action(async (id) => {
+    .option('--yes', 'Skip confirmation prompt')
+    .action(async (id, options) => {
       requireAuth()
       const { workspace, repo } = getContext()
       const prId = parseId(id)
-      const spinner = ora('Fetching pull request...').start()
+      let fetchSpinner: ReturnType<typeof ora> | undefined
       let actionSpinner: ReturnType<typeof ora> | undefined
       try {
-        const pullRequest = await getPullRequest(workspace, repo, prId)
-        spinner.stop()
-        const confirmed = await confirm({
-          message: `Decline PR #${prId} "${pullRequest.title}"?`,
-          default: false,
-        })
-        if (!confirmed) { console.log(chalk.dim('Cancelled.')); return }
+        if (!options.yes) {
+          fetchSpinner = ora('Fetching pull request...').start()
+          const pullRequest = await getPullRequest(workspace, repo, prId)
+          fetchSpinner.stop()
+          const confirmed = await resolveConfirm(false, `Decline PR #${prId} "${pullRequest.title}"?`)
+          if (!confirmed) { console.log(chalk.dim('Cancelled.')); return }
+        }
         actionSpinner = ora('Declining...').start()
         await declinePullRequest(workspace, repo, prId)
         actionSpinner.succeed(`PR #${prId} declined`)
       } catch (error) {
         if (error instanceof Error && error.name === 'ExitPromptError') process.exit(0)
         actionSpinner?.fail(error instanceof Error ? error.message : 'Unknown error')
-        if (!actionSpinner) {
-          spinner.fail(error instanceof Error ? error.message : 'Unknown error')
-        }
+        fetchSpinner?.fail(error instanceof Error ? error.message : 'Unknown error')
         process.exit(1)
       }
     })
