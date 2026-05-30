@@ -75,13 +75,18 @@ describe('listPullRequests', () => {
     )
   })
 
-  it('omits state param for "all"', async () => {
-    mockGet.mockResolvedValue({ data: { values: [] } })
-    await listPullRequests(WS, REPO, 'all', 20)
+  it('uses q=state IN (...) for "all" in a single request', async () => {
+    const merged = { ...BITBUCKET_PR, id: 2, state: 'MERGED' }
+    mockGet.mockResolvedValue({ data: { values: [BITBUCKET_PR, merged] } })
+    const result = await listPullRequests(WS, REPO, 'all', 20)
+    expect(mockGet).toHaveBeenCalledTimes(1)
     expect(mockGet).toHaveBeenCalledWith(
       '/repositories/myworkspace/myrepo/pullrequests',
-      { params: { pagelen: 20 } }
+      { params: { pagelen: 20, q: 'state IN ("OPEN", "MERGED", "DECLINED", "SUPERSEDED")' } }
     )
+    expect(result).toHaveLength(2)
+    expect(result[0].state).toBe('OPEN')
+    expect(result[1].state).toBe('MERGED')
   })
 
   it('handles missing reviewers field (list endpoint omits it)', async () => {

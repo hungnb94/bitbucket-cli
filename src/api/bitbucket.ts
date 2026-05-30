@@ -106,8 +106,10 @@ export async function listPullRequests(
 ): Promise<PullRequest[]> {
   return withRetry(async () => {
     const client = buildClient()
-    const params: Record<string, string | number> = { pagelen: limit }
-    if (state !== 'all') params.state = state.toUpperCase()
+    const params: Record<string, string | number> =
+      state === 'all'
+        ? { pagelen: limit, q: 'state IN ("OPEN", "MERGED", "DECLINED", "SUPERSEDED")' }
+        : { pagelen: limit, state: state.toUpperCase() }
     const response = await client.get<{ values: BitbucketPRResponse[] }>(
       `/repositories/${workspace}/${repo}/pullrequests`,
       { params }
