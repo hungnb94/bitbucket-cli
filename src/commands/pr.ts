@@ -267,9 +267,10 @@ export function createPrCommand(): Command {
 
         spinner = ora('Creating pull request...').start()
         const result = await createPullRequest(workspace, repo, options.title, sourceBranch, targetBranch, options.description)
+        if (!result.id || !result.links?.html?.href) throw new Error('Unexpected response from Bitbucket API.')
         spinner.succeed(`PR #${result.id} created: ${result.links.html.href}`)
       } catch (error) {
-        if (error instanceof Error && error.constructor.name === 'ExitPromptError') process.exit(0)
+        if (error instanceof Error && error.name === 'ExitPromptError') process.exit(0)
         spinner?.fail(error instanceof Error ? error.message : 'Unknown error')
         process.exit(1)
       }

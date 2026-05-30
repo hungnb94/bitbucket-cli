@@ -53,7 +53,7 @@ export function detectDefaultTarget(): string {
   }
   const branches = output.split('\n').map(l => l.replace(/^\*\s+/, '').trim()).filter(Boolean)
   for (const candidate of ['main', 'master']) {
-    if (branches.some(b => b === candidate || new RegExp(`^remotes/[^/]+/${candidate}$`).test(b))) {
+    if (branches.some(b => b === candidate || (b.startsWith('remotes/') && b.endsWith(`/${candidate}`)))) {
       return candidate
     }
   }
