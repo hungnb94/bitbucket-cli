@@ -3,7 +3,7 @@ import axios from 'axios'
 
 vi.mock('axios')
 
-const mockedAxios = vi.mocked(axios, true)
+const mockedAxios = vi.mocked(axios)
 
 const { validateCredentials } = await import('../../src/auth/credentials.js')
 

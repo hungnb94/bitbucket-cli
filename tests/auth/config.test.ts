@@ -4,12 +4,14 @@ const mockData: Record<string, unknown> = {}
 const mockPath = '/mock/.config/bitbucket-cli/config.json'
 
 vi.mock('conf', () => ({
-  default: vi.fn(() => ({
-    get: (key: string) => mockData[key],
-    set: (key: string, val: unknown) => { mockData[key] = val },
-    clear: () => { Object.keys(mockData).forEach(k => delete mockData[k]) },
-    path: mockPath,
-  })),
+  default: vi.fn(function () {
+    return {
+      get: (key: string) => mockData[key],
+      set: (key: string, val: unknown) => { mockData[key] = val },
+      clear: () => { Object.keys(mockData).forEach(k => delete mockData[k]) },
+      path: mockPath,
+    }
+  }),
 }))
 
 vi.mock('fs', () => ({
