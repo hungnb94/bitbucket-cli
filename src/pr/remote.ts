@@ -44,14 +44,14 @@ export function getCurrentBranch(): string {
 export function detectDefaultTarget(): string {
   let output: string
   try {
-    output = (execSync('git branch -a', {
+    output = (execSync('git branch -a --no-color', {
       encoding: 'utf8',
       stdio: ['pipe', 'pipe', 'pipe'],
     }) as string)
   } catch {
     throw new Error('Could not detect default target branch. Use --target <branch>.')
   }
-  const branches = output.split('\n').map(l => l.replace(/^\*\s+/, '').trim()).filter(Boolean)
+  const branches = output.split('\n').map(l => l.replace(/^[*+]\s+/, '').trim()).filter(Boolean)
   for (const candidate of ['main', 'master']) {
     if (branches.some(b => b === candidate || (b.startsWith('remotes/') && b.endsWith(`/${candidate}`)))) {
       return candidate
