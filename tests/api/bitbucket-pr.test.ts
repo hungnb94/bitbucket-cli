@@ -84,6 +84,13 @@ describe('listPullRequests', () => {
     )
   })
 
+  it('handles missing reviewers field (list endpoint omits it)', async () => {
+    const prWithoutReviewers = { ...BITBUCKET_PR, reviewers: undefined }
+    mockGet.mockResolvedValue({ data: { values: [prWithoutReviewers] } })
+    const result = await listPullRequests(WS, REPO, 'open', 20)
+    expect(result[0].reviewerNames).toEqual([])
+  })
+
   it('throws on 403', async () => {
     mockGet.mockRejectedValue(makeAxiosError(403))
     await expect(listPullRequests(WS, REPO, 'open', 20)).rejects.toThrow('403 Forbidden')

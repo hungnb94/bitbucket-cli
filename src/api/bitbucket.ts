@@ -90,7 +90,7 @@ function toPullRequest(data: BitbucketPRResponse): PullRequest {
     state: data.state as PullRequest['state'],
     updatedOn: data.updated_on,
     description: data.description ?? '',
-    reviewerNames: data.reviewers.map((r) => r.display_name),
+    reviewerNames: (data.reviewers ?? []).map((r) => r.display_name),
     sourceBranch: data.source.branch.name,
     destBranch: data.destination.branch.name,
   }
