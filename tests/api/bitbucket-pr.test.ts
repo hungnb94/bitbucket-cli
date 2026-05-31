@@ -98,6 +98,7 @@ describe('listPullRequests', () => {
     mockGet.mockResolvedValue({ data: { values: [prWithoutReviewers] } })
     const result = await listPullRequests(WS, REPO, 'open', 20)
     expect(result[0].reviewerNames).toEqual([])
+    expect(result[0].reviewerUuids).toEqual([])
   })
 
   it('throws on 403', async () => {
