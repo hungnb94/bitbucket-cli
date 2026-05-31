@@ -1,6 +1,6 @@
 {
   "name": "@hungnb94/bitbucket-cli",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Bitbucket CLI tool for auth and PR management",
   "type": "module",
   "main": "./dist/index.js",
