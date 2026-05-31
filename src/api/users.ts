@@ -6,6 +6,8 @@ export async function getUserByUsername(
   try {
     return await withRetry(async () => {
       const client = buildClient()
+      // TODO: /users/{username} is a legacy Bitbucket slug lookup — migrate to
+      // workspace members search API (/workspaces/{ws}/members?q=nickname="...") for stability
       const response = await client.get<{ uuid: string; display_name: string }>(
         `/users/${username}`
       )

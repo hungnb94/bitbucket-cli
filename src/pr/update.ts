@@ -18,13 +18,13 @@ export type UpdateInput = {
   closeSourceBranch?: boolean
 }
 
-export async function resolveReviewerUsernames(
+async function resolveReviewerUsernames(
   usernames: string[]
 ): Promise<{ uuid: string }[]> {
   if (usernames.length === 0) return []
   const results = await Promise.allSettled(usernames.map((u) => getUserByUsername(u)))
   const errors = results
-    .map((r, i) =>
+    .map((r) =>
       r.status === 'rejected'
         ? (r.reason instanceof Error ? r.reason.message : String(r.reason))
         : null

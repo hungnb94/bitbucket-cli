@@ -6,6 +6,8 @@ import { getPullRequest, updatePullRequest } from '../../api/pr.js'
 import { buildReviewerPatch, diffFields, type UpdateInput } from '../../pr/update.js'
 import { requireAuth, getContext, parseId } from './helpers.js'
 
+const truncate = (s: string, max = 80) => (s.length > max ? s.slice(0, max) + '…' : s)
+
 interface UpdateOptions {
   title?: string
   description?: string
@@ -90,7 +92,7 @@ export function register(pr: Command): void {
 
         const input: UpdateInput = {
           title: options.title?.trim(),
-          description: options.description,
+          description: options.description?.trim(),
           target: options.target?.trim(),
           addReviewers: options.addReviewer,
           removeReviewers: options.removeReviewer,
@@ -116,7 +118,7 @@ export function register(pr: Command): void {
           }
           if (patch.description !== undefined) {
             console.log(
-              `  Description: ${chalk.dim(current.description || '(none)')} → ${patch.description || '(none)'}`
+              `  Description: ${chalk.dim(truncate(current.description || '(none)'))} → ${truncate(patch.description || '(none)')}`
             )
           }
           if (patch.destination !== undefined) {
@@ -130,7 +132,9 @@ export function register(pr: Command): void {
             const parts: string[] = []
             if (adds.length > 0) parts.push(adds.map((n) => `+${n}`).join(', '))
             if (removes.length > 0) parts.push(removes.map((n) => `-${n}`).join(', '))
-            console.log(`  Reviewers: ${parts.join('  ')}`)
+            const currentList =
+              current.reviewerNames.length > 0 ? current.reviewerNames.join(', ') : '(none)'
+            console.log(`  Reviewers: ${parts.join('  ')}  (current: ${currentList})`)
           }
           if (patch.closeSourceBranch !== undefined) {
             console.log(

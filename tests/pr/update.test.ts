@@ -6,7 +6,7 @@ vi.mock('../../src/api/users.js', () => ({
   getUserByUsername: mockGetUserByUsername,
 }))
 
-const { resolveReviewerUsernames, buildReviewerPatch, diffFields } =
+const { buildReviewerPatch, diffFields } =
   await import('../../src/pr/update.js')
 
 const BASE_PR: PullRequest = {
@@ -25,31 +25,6 @@ const BASE_PR: PullRequest = {
 
 beforeEach(() => {
   vi.resetAllMocks()
-})
-
-describe('resolveReviewerUsernames', () => {
-  it('returns uuid objects for all resolved usernames', async () => {
-    mockGetUserByUsername
-      .mockResolvedValueOnce({ uuid: '{uuid-alice}', displayName: 'Alice' })
-      .mockResolvedValueOnce({ uuid: '{uuid-bob}', displayName: 'Bob' })
-    const result = await resolveReviewerUsernames(['alice', 'bob'])
-    expect(result).toEqual([{ uuid: '{uuid-alice}' }, { uuid: '{uuid-bob}' }])
-  })
-
-  it('throws aggregated error listing all unknown usernames', async () => {
-    mockGetUserByUsername
-      .mockRejectedValueOnce(new Error('Reviewer not found: ghost'))
-      .mockRejectedValueOnce(new Error('Reviewer not found: nobody'))
-    await expect(resolveReviewerUsernames(['ghost', 'nobody'])).rejects.toThrow(
-      /Reviewer not found: ghost[\s\S]*Reviewer not found: nobody/
-    )
-  })
-
-  it('returns empty array for empty input', async () => {
-    const result = await resolveReviewerUsernames([])
-    expect(result).toEqual([])
-    expect(mockGetUserByUsername).not.toHaveBeenCalled()
-  })
 })
 
 describe('buildReviewerPatch', () => {

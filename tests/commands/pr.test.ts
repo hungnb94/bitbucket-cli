@@ -731,6 +731,29 @@ describe('pr update', () => {
     errorSpy.mockRestore()
   })
 
+  it('non-interactive (-y): applies --close-source-branch', async () => {
+    mockGetPullRequest.mockResolvedValue(MOCK_PR)
+    mockDiffFields.mockReturnValue({ closeSourceBranch: true })
+    mockUpdatePullRequest.mockResolvedValue(UPDATE_RESULT)
+    await runCommand(['pr', 'update', '42', '--close-source-branch', '-y'])
+    expect(mockUpdatePullRequest).toHaveBeenCalledWith('myworkspace', 'myrepo', 42, { closeSourceBranch: true })
+    expect(mockConfirm).not.toHaveBeenCalled()
+  })
+
+  it('confirm mode: shows close-source-branch change and updates on confirm', async () => {
+    mockGetPullRequest.mockResolvedValue(MOCK_PR)
+    mockDiffFields.mockReturnValue({ closeSourceBranch: true })
+    mockUpdatePullRequest.mockResolvedValue(UPDATE_RESULT)
+    mockConfirm.mockResolvedValue(true)
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    await runCommand(['pr', 'update', '42', '--close-source-branch'])
+    const output = consoleSpy.mock.calls.flat().join('\n')
+    expect(output).toContain('Close source branch')
+    expect(mockConfirm).toHaveBeenCalled()
+    expect(mockUpdatePullRequest).toHaveBeenCalledWith('myworkspace', 'myrepo', 42, { closeSourceBranch: true })
+    consoleSpy.mockRestore()
+  })
+
   it('exits with 1 when buildReviewerPatch throws (unknown reviewer)', async () => {
     mockGetPullRequest.mockResolvedValue(MOCK_PR)
     mockBuildReviewerPatch.mockRejectedValue(new Error('Reviewer not found: ghost'))
