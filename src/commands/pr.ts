@@ -22,12 +22,27 @@ function requireAuth(): void {
   }
 }
 
-function getContext(): { workspace: string; repo: string } {
+function getContext(flags?: { workspace?: string; repo?: string }): { workspace: string; repo: string } {
+  if (flags?.workspace !== undefined && flags.workspace.trim() === '') {
+    console.error(chalk.red('✗') + ' --workspace cannot be empty')
+    process.exit(1)
+  }
+  if (flags?.repo !== undefined && flags.repo.trim() === '') {
+    console.error(chalk.red('✗') + ' --repo cannot be empty')
+    process.exit(1)
+  }
   try {
-    return getRepoContext()
+    if (flags?.workspace && flags?.repo) {
+      return { workspace: flags.workspace, repo: flags.repo }
+    }
+    const inferred = getRepoContext()
+    return {
+      workspace: flags?.workspace ?? inferred.workspace,
+      repo:      flags?.repo      ?? inferred.repo,
+    }
   } catch (error) {
     console.error(chalk.red('✗') + ' ' + (error instanceof Error ? error.message : String(error)))
-    process.exit(1) as never
+    process.exit(1)
   }
 }
 
@@ -76,7 +91,10 @@ async function runPrAction(
 }
 
 export function createPrCommand(): Command {
-  const pr = new Command('pr').description('Manage pull requests')
+  const pr = new Command('pr')
+    .description('Manage pull requests')
+    .option('--workspace <workspace>', 'Bitbucket workspace')
+    .option('--repo <repo>', 'Bitbucket repository slug')
 
   pr
     .command('list')
@@ -87,7 +105,7 @@ export function createPrCommand(): Command {
     .option('--limit <n>', 'Number of PRs to show', '20')
     .action(async (options) => {
       requireAuth()
-      const { workspace, repo } = getContext()
+      const { workspace, repo } = getContext(pr.opts())
       const limit = parseInt(options.limit, 10)
       if (isNaN(limit) || limit < 1) {
         console.error(chalk.red('✗') + ' --limit must be a positive integer')
@@ -110,7 +128,7 @@ export function createPrCommand(): Command {
     .argument('<id>', 'PR ID')
     .action(async (id) => {
       requireAuth()
-      const { workspace, repo } = getContext()
+      const { workspace, repo } = getContext(pr.opts())
       const prId = parseId(id)
       const spinner = ora('Fetching pull request...').start()
       try {
@@ -132,7 +150,7 @@ export function createPrCommand(): Command {
     .argument('<id>', 'PR ID')
     .action(async (id) => {
       requireAuth()
-      const { workspace, repo } = getContext()
+      const { workspace, repo } = getContext(pr.opts())
       const prId = parseId(id)
       const spinner = ora('Fetching diff...').start()
       try {
@@ -152,7 +170,7 @@ export function createPrCommand(): Command {
     .option('-y, --yes', 'Skip confirmation prompt')
     .action(async (id, options) => {
       requireAuth()
-      const { workspace, repo } = getContext()
+      const { workspace, repo } = getContext(pr.opts())
       const prId = parseId(id)
       await runPrAction(workspace, repo, prId, {
         confirmVerb: 'Approve',
@@ -170,7 +188,7 @@ export function createPrCommand(): Command {
     .option('-y, --yes', 'Skip confirmation prompt')
     .action(async (id, options) => {
       requireAuth()
-      const { workspace, repo } = getContext()
+      const { workspace, repo } = getContext(pr.opts())
       const prId = parseId(id)
       await runPrAction(workspace, repo, prId, {
         confirmVerb: 'Decline',
@@ -196,7 +214,7 @@ export function createPrCommand(): Command {
         process.exit(1)
       }
 
-      const { workspace, repo } = getContext()
+      const { workspace, repo } = getContext(pr.opts())
       const prId = parseId(id)
       let lineNum: number | undefined
       if (options.line !== undefined) {
@@ -235,7 +253,7 @@ export function createPrCommand(): Command {
     .option('-y, --yes', 'Skip confirmation prompt')
     .action(async (options) => {
       requireAuth()
-      const { workspace, repo } = getContext()
+      const { workspace, repo } = getContext(pr.opts())
 
       let sourceBranch: string
       if (options.source !== undefined) {

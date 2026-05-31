@@ -8,7 +8,7 @@
 
 ## Overview
 
-Implements the `bitbucket pr` command group: `create`, `list`, `view`, `diff`, `approve`, `decline`, `comment`. Workspace and repo are auto-detected from the git remote origin of the current directory. No AI review (`pr review`) in scope.
+Implements the `bitbucket pr` command group: `create`, `list`, `view`, `diff`, `approve`, `decline`, `comment`. Workspace and repo are auto-detected from the git remote origin of the current directory, or can be specified explicitly via `--workspace` and `--repo` flags on the parent `pr` command. No AI review (`pr review`) in scope.
 
 ---
 
@@ -89,14 +89,23 @@ postComment(workspace: string, repo: string, id: number, message: string, inline
 
 ## Commands
 
+The parent `pr` command accepts two flags that apply to all subcommands:
+
+| Flag | Description |
+|------|-------------|
+| `--workspace <workspace>` | Bitbucket workspace (overrides git remote inference) |
+| `--repo <repo>` | Bitbucket repository slug (overrides git remote inference) |
+
+Each flag is independent. When both are provided, git remote inference is skipped entirely.
+
 ```
-bitbucket pr create --title <title> [--description <text>] [--target <branch>] [--yes]
-bitbucket pr list [--state open|merged|declined|all] [--limit <n>]
-bitbucket pr view <id>
-bitbucket pr diff <id>
-bitbucket pr approve <id> [-y]
-bitbucket pr decline <id> [-y]
-bitbucket pr comment <id> <message> [--file <path> --line <n>]
+bitbucket pr [--workspace <ws>] [--repo <repo>] create --title <title> [--description <text>] [--target <branch>] [--yes]
+bitbucket pr [--workspace <ws>] [--repo <repo>] list [--state open|merged|declined|all] [--limit <n>]
+bitbucket pr [--workspace <ws>] [--repo <repo>] view <id>
+bitbucket pr [--workspace <ws>] [--repo <repo>] diff <id>
+bitbucket pr [--workspace <ws>] [--repo <repo>] approve <id> [-y]
+bitbucket pr [--workspace <ws>] [--repo <repo>] decline <id> [-y]
+bitbucket pr [--workspace <ws>] [--repo <repo>] comment <id> <message> [--file <path> --line <n>]
 ```
 
 ### `pr create`
