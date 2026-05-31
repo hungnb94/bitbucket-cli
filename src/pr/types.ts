@@ -6,6 +6,8 @@ export type PullRequest = {
   updatedOn: string
   description: string
   reviewerNames: string[]
+  reviewerUuids: string[]
+  closeSourceBranch: boolean
   sourceBranch: string
   destBranch: string
 }

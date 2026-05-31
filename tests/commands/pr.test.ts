@@ -63,6 +63,8 @@ const MOCK_PR = {
   updatedOn: '2024-01-01T00:00:00.000Z',
   description: 'desc',
   reviewerNames: ['minh'],
+  reviewerUuids: ['{uuid-minh}'],
+  closeSourceBranch: false,
   sourceBranch: 'feature/foo',
   destBranch: 'main',
 }

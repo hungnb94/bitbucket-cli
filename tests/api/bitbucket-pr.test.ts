@@ -45,9 +45,10 @@ const BITBUCKET_PR = {
   state: 'OPEN',
   updated_on: '2024-01-01T00:00:00.000Z',
   description: 'desc',
-  reviewers: [{ display_name: 'minh' }],
+  reviewers: [{ display_name: 'minh', uuid: '{uuid-minh}' }],
   source: { branch: { name: 'feature/foo' } },
   destination: { branch: { name: 'main' } },
+  close_source_branch: false,
 }
 
 describe('listPullRequests', () => {
@@ -62,6 +63,8 @@ describe('listPullRequests', () => {
       updatedOn: '2024-01-01T00:00:00.000Z',
       description: 'desc',
       reviewerNames: ['minh'],
+      reviewerUuids: ['{uuid-minh}'],
+      closeSourceBranch: false,
       sourceBranch: 'feature/foo',
       destBranch: 'main',
     }])
