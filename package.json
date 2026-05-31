@@ -1,21 +1,44 @@
 {
-  "name": "bitbucket-cli",
-  "version": "0.1.0",
-  "description": "Bitbucket CLI tool",
+  "name": "@hungnb94/bitbucket-cli",
+  "version": "1.0.0",
+  "description": "Bitbucket CLI tool for auth and PR management",
   "type": "module",
+  "main": "./dist/index.js",
   "bin": {
     "bitbucket": "./dist/index.js"
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "prepublishOnly": "yarn build"
   },
   "engines": {
     "node": ">=22"
   },
   "packageManager": "yarn@1.22.22",
+  "keywords": [
+    "bitbucket",
+    "cli",
+    "git",
+    "pull-request",
+    "pr",
+    "atlassian"
+  ],
+  "author": "hungnb94",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hungnb94/bitbucket-cli.git"
+  },
+  "homepage": "https://github.com/hungnb94/bitbucket-cli#readme",
+  "bugs": {
+    "url": "https://github.com/hungnb94/bitbucket-cli/issues"
+  },
   "dependencies": {
     "@inquirer/prompts": "^8.5.1",
     "axios": "^1.7.0",
