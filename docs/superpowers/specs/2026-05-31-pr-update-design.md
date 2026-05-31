@@ -1,7 +1,8 @@
-# PR Update Feature Design
+# PR Update Command Design
 
 **Date:** 2026-05-31  
-**Branch:** feature/pr-update
+**Branch:** feature/pr-update  
+**Depends on:** `2026-05-31-refactor-file-structure-design.md`
 
 ## Overview
 
@@ -19,6 +20,7 @@ bitbucket pr update <id> [flags]
   --remove-reviewer <username> Remove a reviewer by Bitbucket username (repeatable)
   --close-source-branch        Enable close-source-branch on merge
   --no-close-source-branch     Disable close-source-branch on merge
+  -y, --yes                    Skip confirmation prompt
 
 Global flags (inherited):
   --workspace <workspace>      Bitbucket workspace
@@ -26,137 +28,122 @@ Global flags (inherited):
 ```
 
 **Mode detection:**
-- `-y/--yes` + flags → non-interactive: update immediately, no confirmation.
-- Flags without `-y` → show summary of changes, ask confirm before submitting.
-- No flags → fetch current PR, display all current field values, print hint showing which flags to use.
+- No flags → fetch PR, display current values, print flag hints, exit 0.
+- Flags + `-y` → update immediately, no confirmation.
+- Flags without `-y` → show change summary, ask confirm before submitting.
 
-```
-  --title <text>               Update PR title
-  --description <text>         Update PR description
-  --target <branch>            Update destination branch
-  --add-reviewer <username>    Add a reviewer (repeatable)
-  --remove-reviewer <username> Remove a reviewer (repeatable)
-  --close-source-branch / --no-close-source-branch
-  -y, --yes                    Skip confirmation prompt
-```
-
-## Architecture
-
-### File Structure
-
-Refactor existing code and add new files:
+## New Files
 
 ```
 src/
   api/
-    client.ts       ← shared axios builder, withRetry, throwApiError
-    pr.ts           ← all PR API functions (migrated from bitbucket.ts)
-    users.ts        ← getUserByUsername (new)
+    users.ts        ← getUserByUsername
   commands/
     pr/
-      index.ts      ← creates `pr` Command, mounts all subcommands
-      list.ts
-      view.ts
-      diff.ts
-      approve.ts
-      decline.ts
-      comment.ts
-      create.ts
-      update.ts     ← new
+      update.ts     ← pr update subcommand
   pr/
-    update.ts       ← reviewer resolution + field diff logic (new)
-    format.ts       ← (existing)
-    remote.ts       ← (existing)
-    types.ts        ← (existing)
-    index.ts        ← (existing)
+    update.ts       ← reviewer resolution + field diff logic
 ```
 
-`src/api/bitbucket.ts` is deleted after migration; all consumers updated.
+## API Layer
 
-### API Layer
+**`src/api/users.ts`**
+- `getUserByUsername(username: string): Promise<{ uuid: string; displayName: string }>`  
+  `GET /users/{username}`. Throws descriptive error on 404.
 
-**`src/api/client.ts`**  
-Exports: `buildClient()`, `withRetry()`, `throwApiError()`.
+**`src/api/pr.ts`** — add:
+- `updatePullRequest(workspace, repo, id, patch: UpdatePatch): Promise<{ id: number; links: { html: { href: string } } }>`  
+  `PUT /repositories/{ws}/{repo}/pullrequests/{id}`. `patch` contains only changed fields; reviewer list is always sent as full UUID array when changed.
 
-**`src/api/pr.ts`**  
-Exports all existing PR functions plus:
-- `updatePullRequest(workspace, repo, id, patch)` — `PUT /repositories/{ws}/{repo}/pullrequests/{id}`  
-  `patch` contains only changed fields + full reviewer UUID list if reviewers changed.
+## PR Logic Layer
 
-**`src/api/users.ts`**  
-- `getUserByUsername(username)` — `GET /users/{username}`, returns `{ uuid: string; displayName: string }`.  
-  Throws a clear error if user not found (404).
+**`src/pr/update.ts`**
 
-### PR Logic Layer
+Types:
+```ts
+type UpdateInput = {
+  title?: string
+  description?: string
+  target?: string
+  addReviewers?: string[]
+  removeReviewers?: string[]
+  closeSourceBranch?: boolean
+}
 
-**`src/pr/update.ts`**  
-- `resolveReviewerUsernames(usernames: string[]): Promise<{ uuid: string }[]>` — fans out parallel `getUserByUsername` calls, collects results. Throws aggregated error if any username fails to resolve.
-- `buildReviewerPatch(current: string[], addUsernames: string[], removeUsernames: string[]): Promise<{ uuid: string }[] | undefined>` — fetches UUIDs for add list, computes new set (current + add − remove), returns undefined if unchanged.
-- `diffFields(current: PullRequest, input: UpdateInput): UpdatePatch` — compares input against current PR, returns only changed fields as a patch object. Returns empty object if nothing changed.
+type UpdatePatch = {
+  title?: string
+  description?: string
+  destination?: { branch: { name: string } }
+  reviewers?: { uuid: string }[]
+  close_source_branch?: boolean
+}
+```
 
-### Command Layer
+Functions:
+- `resolveReviewerUsernames(usernames: string[]): Promise<{ uuid: string }[]>` — parallel `getUserByUsername` calls; throws aggregated error listing all unknown usernames.
+- `buildReviewerPatch(currentUuids: string[], addNames: string[], removeNames: string[]): Promise<{ uuid: string }[] | undefined>` — resolves add/remove names, computes new UUID set (current + add − remove), returns `undefined` if unchanged.
+- `diffFields(current: PullRequest, input: UpdateInput, newReviewers?: { uuid: string }[]): UpdatePatch` — compares each field, returns only changed fields as API-shaped patch.
 
-**`src/commands/pr/update.ts`**  
-- No-flags path: fetch PR → print current field values + hint listing available flags, exit 0.
-- With-flags path: fetch PR → resolve reviewer usernames → build patch → if patch empty print "Nothing to update", exit 0 → if `-y` skip confirm, else show change summary and confirm → call `updatePullRequest` → print success with PR link.
+## Command Layer
 
-## Data Flow
+**`src/commands/pr/update.ts`**
+
+Three paths based on flags:
 
 ### No flags (suggest mode)
-
 ```
 fetch current PR (spinner)
   → print current values:
-      Title:       <title>
-      Description: <description>
-      Target:      <destBranch>
-      Reviewers:   <reviewerNames>
-      Close source branch: <yes|no>
+      Title:               <title>
+      Description:         <description>
+      Target:              <destBranch>
+      Reviewers:           <reviewerNames joined by ", ">
+      Close source branch: yes | no
   → print hint:
-      Run with flags to update, e.g.:
+      "Run with flags to update, e.g.:"
         --title "New title"
         --add-reviewer <username>
-        ...
+        --remove-reviewer <username>
+        --target <branch>
+        --close-source-branch / --no-close-source-branch
   → exit 0
 ```
 
-### With flags (non-interactive: -y present)
-
-```
-fetch current PR (needed for reviewer merge)
-  → resolve --add-reviewer / --remove-reviewer usernames to UUIDs (parallel)
-  → buildReviewerPatch: merge current + add − remove
-  → diffFields: collect all changed fields into patch
-  → if patch empty: print "Nothing to update", exit 0
-  → updatePullRequest(patch)
-  → print success + PR link
-```
-
-### With flags (confirm: no -y)
-
+### With flags, -y present (non-interactive)
 ```
 fetch current PR
-  → resolve reviewer usernames
+  → buildReviewerPatch (parallel username resolution)
+  → diffFields
+  → if patch empty: print "Nothing to update.", exit 0
+  → updatePullRequest(patch)
+  → print "PR #<id> updated: <url>"
+```
+
+### With flags, no -y (confirm)
+```
+fetch current PR
   → buildReviewerPatch + diffFields
-  → if patch empty: print "Nothing to update", exit 0
+  → if patch empty: print "Nothing to update.", exit 0
   → print change summary:
-      Title:   "old" → "new"
-      Target:  old → new
+      Title:   "old title" → "new title"
+      Target:  old-branch → new-branch
       ...
   → confirm? (default: false)
+  → if not confirmed: print "Cancelled.", exit 0
   → updatePullRequest(patch)
-  → print success + PR link
+  → print "PR #<id> updated: <url>"
 ```
 
 ## Error Handling
 
-- Unknown reviewer username → clear error: `✗ Reviewer not found: <username>`
-- Multiple unknown reviewers → list all failures in one message before exiting
-- 409 from API (e.g. invalid target branch) → surface API message
+- Unknown reviewer username → `✗ Reviewer not found: <username>` (list all failures together before exit)
+- Empty `--title` or `--target` → `✗ --title cannot be empty.`
 - No fields changed → `Nothing to update.` (exit 0, not an error)
+- API errors → surface via existing `throwApiError` pattern
 
 ## Testing
 
-- Unit tests for `diffFields` and `buildReviewerPatch` in `src/pr/update.ts`
-- Unit tests for `updatePullRequest` in `src/api/pr.ts`
-- Integration-style tests for the command handler in `src/commands/pr/update.ts` (mock API layer)
+- Unit: `diffFields` — field-by-field change detection
+- Unit: `buildReviewerPatch` — add/remove/unchanged cases
+- Unit: `updatePullRequest` — correct PUT body shape
+- Integration: command handler with mocked API — all three mode paths
