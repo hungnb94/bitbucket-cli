@@ -279,8 +279,14 @@ export function createPrCommand(): Command {
         }
       }
 
-      let targetBranch: string = options.target?.trim() ?? ''
-      if (!targetBranch) {
+      let targetBranch: string
+      if (options.target !== undefined) {
+        targetBranch = options.target.trim()
+        if (!targetBranch) {
+          console.error(chalk.red('✗') + ' --target branch name cannot be empty.')
+          process.exit(1)
+        }
+      } else {
         try {
           targetBranch = detectDefaultTarget()
         } catch (error) {
