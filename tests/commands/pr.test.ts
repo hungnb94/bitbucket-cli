@@ -738,4 +738,14 @@ describe('pr update', () => {
       runCommand(['pr', 'update', '42', '--add-reviewer', 'ghost', '-y'])
     ).rejects.toThrow('process.exit(1)')
   })
+
+  it('exits with 1 when buildReviewerPatch throws (duplicate reviewer)', async () => {
+    mockGetPullRequest.mockResolvedValue(MOCK_PR)
+    mockBuildReviewerPatch.mockRejectedValue(
+      new Error('alice appears in both --add-reviewer and --remove-reviewer.')
+    )
+    await expect(
+      runCommand(['pr', 'update', '42', '--add-reviewer', 'alice', '--remove-reviewer', 'alice', '-y'])
+    ).rejects.toThrow('process.exit(1)')
+  })
 })

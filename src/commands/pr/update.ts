@@ -6,6 +6,16 @@ import { getPullRequest, updatePullRequest } from '../../api/pr.js'
 import { buildReviewerPatch, diffFields, type UpdateInput } from '../../pr/update.js'
 import { requireAuth, getContext, parseId } from './helpers.js'
 
+interface UpdateOptions {
+  title?: string
+  description?: string
+  target?: string
+  addReviewer: string[]
+  removeReviewer: string[]
+  closeSourceBranch?: boolean
+  yes?: boolean
+}
+
 export function register(pr: Command): void {
   pr
     .command('update')
@@ -29,7 +39,7 @@ export function register(pr: Command): void {
     .option('--close-source-branch', 'Enable close-source-branch on merge')
     .option('--no-close-source-branch', 'Disable close-source-branch on merge')
     .option('-y, --yes', 'Skip confirmation prompt')
-    .action(async (id, options) => {
+    .action(async (id, options: UpdateOptions) => {
       requireAuth()
       const { workspace, repo } = getContext(pr.opts())
       const prId = parseId(id)
@@ -47,8 +57,8 @@ export function register(pr: Command): void {
         options.title !== undefined ||
         options.description !== undefined ||
         options.target !== undefined ||
-        (options.addReviewer as string[]).length > 0 ||
-        (options.removeReviewer as string[]).length > 0 ||
+        options.addReviewer.length > 0 ||
+        options.removeReviewer.length > 0 ||
         options.closeSourceBranch !== undefined
 
       let fetchSpinner: ReturnType<typeof ora> | undefined
@@ -82,8 +92,8 @@ export function register(pr: Command): void {
           title: options.title?.trim(),
           description: options.description,
           target: options.target?.trim(),
-          addReviewers: options.addReviewer as string[],
-          removeReviewers: options.removeReviewer as string[],
+          addReviewers: options.addReviewer,
+          removeReviewers: options.removeReviewer,
           closeSourceBranch: options.closeSourceBranch,
         }
 

@@ -28,7 +28,7 @@ export function throwApiError(error: AxiosError, prId?: number): never {
   throw new Error('Connection failed. Check your network connection.')
 }
 
-export function throwRetryError(error: AxiosError, prId?: number): never {
+function throwRetryError(error: AxiosError, prId?: number): never {
   if (error.response) return throwApiError(error, prId)
   throw new Error('Connection failed after retry.')
 }

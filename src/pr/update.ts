@@ -31,9 +31,9 @@ export async function resolveReviewerUsernames(
     )
     .filter((e): e is string => e !== null)
   if (errors.length > 0) throw new Error(errors.join('\n'))
-  return (results as PromiseFulfilledResult<{ uuid: string; displayName: string }>[]).map(
-    (r) => ({ uuid: r.value.uuid })
-  )
+  return results
+    .filter((r): r is PromiseFulfilledResult<{ uuid: string; displayName: string }> => r.status === 'fulfilled')
+    .map((r) => ({ uuid: r.value.uuid }))
 }
 
 export async function buildReviewerPatch(
@@ -47,6 +47,8 @@ export async function buildReviewerPatch(
       dups.map((n) => `${n} appears in both --add-reviewer and --remove-reviewer.`).join('\n')
     )
   }
+
+  if (addNames.length === 0 && removeNames.length === 0) return undefined
 
   const [addUuids, removeUuids] = await Promise.all([
     resolveReviewerUsernames(addNames),

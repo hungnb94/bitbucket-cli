@@ -13,6 +13,7 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
+    "bitbucket": "node dist/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "prepublishOnly": "yarn build"

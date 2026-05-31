@@ -40,7 +40,9 @@ describe('resolveReviewerUsernames', () => {
     mockGetUserByUsername
       .mockRejectedValueOnce(new Error('Reviewer not found: ghost'))
       .mockRejectedValueOnce(new Error('Reviewer not found: nobody'))
-    await expect(resolveReviewerUsernames(['ghost', 'nobody'])).rejects.toThrow('ghost')
+    await expect(resolveReviewerUsernames(['ghost', 'nobody'])).rejects.toThrow(
+      /Reviewer not found: ghost[\s\S]*Reviewer not found: nobody/
+    )
   })
 
   it('returns empty array for empty input', async () => {
