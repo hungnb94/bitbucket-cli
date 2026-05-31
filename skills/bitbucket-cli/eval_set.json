@@ -1,0 +1,82 @@
+[
+  {
+    "query": "how do I create a pull request with bitbucket-cli? I'm on feature/login and want to merge into develop",
+    "should_trigger": true
+  },
+  {
+    "query": "list all open PRs in my repo — I ran `bitbucket pr list` but it's only showing 20, how do I get more?",
+    "should_trigger": true
+  },
+  {
+    "query": "I want to approve PR #42 from the terminal without going to the browser",
+    "should_trigger": true
+  },
+  {
+    "query": "how to post an inline comment on line 15 of src/auth.ts in PR 7 using bitbucket cli?",
+    "should_trigger": true
+  },
+  {
+    "query": "need to decline PR 15 non-interactively in a CI script — what flag skips the confirmation?",
+    "should_trigger": true
+  },
+  {
+    "query": "can I view the diff of pull request 7 in the terminal? using the bitbucket CLI tool",
+    "should_trigger": true
+  },
+  {
+    "query": "bitbucket auth login keeps failing — do I need specific scopes on my Atlassian API token?",
+    "should_trigger": true
+  },
+  {
+    "query": "I set BITBUCKET_EMAIL and BITBUCKET_API_TOKEN in my CI env but `bitbucket pr list` still says unauthorized",
+    "should_trigger": true
+  },
+  {
+    "query": "create a PR from feature/login to develop with description 'adds JWT auth' using bitbucket cli",
+    "should_trigger": true
+  },
+  {
+    "query": "how do I log out of bitbucket cli and log back in with a different account?",
+    "should_trigger": true
+  },
+  {
+    "query": "how do I create a pull request on the Bitbucket website through the browser UI?",
+    "should_trigger": false
+  },
+  {
+    "query": "write a GitHub Actions workflow that automatically opens a PR when I push to a feature branch",
+    "should_trigger": false
+  },
+  {
+    "query": "what's the difference between git merge and git rebase when integrating feature branches?",
+    "should_trigger": false
+  },
+  {
+    "query": "how to use the Bitbucket REST API directly with curl to list repositories in my workspace?",
+    "should_trigger": false
+  },
+  {
+    "query": "set up a GitLab CI pipeline to auto-approve merge requests from dependabot",
+    "should_trigger": false
+  },
+  {
+    "query": "how do I configure SSH keys so I can push to Bitbucket without typing my password?",
+    "should_trigger": false
+  },
+  {
+    "query": "what is a pull request and when should I use one vs just pushing directly to main?",
+    "should_trigger": false
+  },
+  {
+    "query": "generate a conventional changelog from git commits for my release notes",
+    "should_trigger": false
+  },
+  {
+    "query": "I want to review someone's code in the Bitbucket Cloud web UI — how do I add review comments?",
+    "should_trigger": false
+  },
+  {
+    "query": "add a pre-commit hook that runs eslint before every git commit in my Node project",
+    "should_trigger": false
+  }
+]
