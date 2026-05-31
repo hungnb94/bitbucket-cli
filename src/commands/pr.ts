@@ -268,14 +268,14 @@ export function createPrCommand(): Command {
         sourceBranch = options.source.trim()
         if (!sourceBranch) {
           console.error(chalk.red('✗') + ' --source branch name cannot be empty.')
-          process.exit(1) as never
+          process.exit(1)
         }
       } else {
         try {
           sourceBranch = getCurrentBranch()
         } catch (error) {
           console.error(chalk.red('✗') + ' ' + (error instanceof Error ? error.message : String(error)))
-          process.exit(1) as never
+          process.exit(1)
         }
       }
 
@@ -285,13 +285,13 @@ export function createPrCommand(): Command {
           targetBranch = detectDefaultTarget()
         } catch (error) {
           console.error(chalk.red('✗') + ' ' + (error instanceof Error ? error.message : String(error)))
-          process.exit(1) as never
+          process.exit(1)
         }
       }
 
       if (sourceBranch === targetBranch) {
         console.error(chalk.red('✗') + ' Source and target branch must be different.')
-        process.exit(1) as never
+        process.exit(1)
       }
 
       let spinner: ReturnType<typeof ora> | undefined
