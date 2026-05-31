@@ -1,16 +1,20 @@
 ---
 name: bitbucket-cli
 description: >
-  Complete guide for using the bitbucket-cli tool to manage Bitbucket pull requests from the terminal.
+  Complete guide for using the @hungnb94/bitbucket-cli tool to manage Bitbucket pull requests from the terminal.
   Use this skill whenever the user asks about: creating PRs, listing/viewing/approving/declining/merging PRs,
   posting comments, diffing changes, authenticating with Bitbucket, or any `bitbucket` CLI command.
   Trigger on phrases like: "create a PR", "list PRs", "approve PR", "view diff", "comment on PR",
-  "decline PR", "bitbucket login", "bitbucket auth", "bitbucket pull request".
+  "decline PR", "bitbucket login", "bitbucket auth", "bitbucket pull request", "bitbucket cli".
+  Make sure to use this skill whenever the user mentions Bitbucket and terminal/CLI/command line,
+  even if they don't explicitly ask for the bitbucket-cli tool.
 ---
 
-# bitbucket-cli
+# @hungnb94/bitbucket-cli
 
 A CLI tool to manage Bitbucket pull requests from the terminal. Requires Node.js ≥ 22.
+
+[![npm version](https://img.shields.io/npm/v/@hungnb94/bitbucket-cli.svg)](https://www.npmjs.com/package/@hungnb94/bitbucket-cli)
 
 ## Install
 
