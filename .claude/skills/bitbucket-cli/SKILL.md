@@ -12,12 +12,10 @@ description: >
 
 A CLI tool to manage Bitbucket pull requests from the terminal. Requires Node.js ≥ 22.
 
-## Setup
+## Install
 
 ```bash
-git clone <repo-url>
-cd bitbucket-cli
-yarn install && yarn build && yarn link
+npm install -g @hungnb94/bitbucket-cli
 ```
 
 ## Authentication
