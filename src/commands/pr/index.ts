@@ -6,6 +6,7 @@ import { register as registerApprove } from './approve.js'
 import { register as registerDecline } from './decline.js'
 import { register as registerComment } from './comment.js'
 import { register as registerCreate } from './create.js'
+import { register as registerUpdate } from './update.js'
 
 export function createPrCommand(): Command {
   const pr = new Command('pr')
@@ -20,6 +21,7 @@ export function createPrCommand(): Command {
   registerDecline(pr)
   registerComment(pr)
   registerCreate(pr)
+  registerUpdate(pr)
 
   return pr
 }
