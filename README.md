@@ -177,7 +177,9 @@ Options:
 
 ```bash
 npx skills add hungnb94/bitbucket-cli --skill bitbucket-cli
-
+```
+or
+```bash
 npx skills add https://github.com/hungnb94/bitbucket-cli --skill bitbucket-cli
 ```
 
