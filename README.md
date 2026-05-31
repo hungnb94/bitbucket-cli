@@ -1,6 +1,8 @@
-# bitbucket-cli
+# @hungnb94/bitbucket-cli
 
 Bitbucket CLI tool for managing pull requests from the terminal. Requires Node.js ≥ 22.
+
+[![npm version](https://img.shields.io/npm/v/@hungnb94/bitbucket-cli.svg)](https://www.npmjs.com/package/@hungnb94/bitbucket-cli)
 
 ## Prerequisites
 
@@ -9,8 +11,16 @@ Bitbucket CLI tool for managing pull requests from the terminal. Requires Node.j
 
 ## Installation
 
+### From npm (recommended)
+
 ```bash
-git clone <repo-url>
+npm install -g @hungnb94/bitbucket-cli
+```
+
+### From source
+
+```bash
+git clone https://github.com/hungnb94/bitbucket-cli.git
 cd bitbucket-cli
 yarn install
 yarn build
