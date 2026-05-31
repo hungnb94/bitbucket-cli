@@ -16,7 +16,7 @@ export function buildClient(): AxiosInstance {
   })
 }
 
-export function throwApiError(error: AxiosError, prId?: number): never {
+function throwApiError(error: AxiosError, prId?: number): never {
   if (error.response?.status === 401) throw new Error('401 Unauthorized')
   if (error.response?.status === 403) {
     throw new Error('403 Forbidden: token missing required scopes.')

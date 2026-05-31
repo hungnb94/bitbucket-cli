@@ -18,7 +18,7 @@ export type UpdateInput = {
   closeSourceBranch?: boolean
 }
 
-async function resolveReviewerUsernames(
+export async function resolveReviewerUsernames(
   usernames: string[]
 ): Promise<{ uuid: string }[]> {
   if (usernames.length === 0) return []
