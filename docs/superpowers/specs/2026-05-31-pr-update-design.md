@@ -26,8 +26,19 @@ Global flags (inherited):
 ```
 
 **Mode detection:**
-- If at least one flag is passed → non-interactive mode: update immediately, no confirmation prompt.
-- If no flags are passed → interactive mode: prompt each field with current value as default, show diff summary, ask for confirmation before submitting.
+- `-y/--yes` + flags → non-interactive: update immediately, no confirmation.
+- Flags without `-y` → show summary of changes, ask confirm before submitting.
+- No flags → fetch current PR, display all current field values, print hint showing which flags to use.
+
+```
+  --title <text>               Update PR title
+  --description <text>         Update PR description
+  --target <branch>            Update destination branch
+  --add-reviewer <username>    Add a reviewer (repeatable)
+  --remove-reviewer <username> Remove a reviewer (repeatable)
+  --close-source-branch / --no-close-source-branch
+  -y, --yes                    Skip confirmation prompt
+```
 
 ## Architecture
 
@@ -86,16 +97,33 @@ Exports all existing PR functions plus:
 ### Command Layer
 
 **`src/commands/pr/update.ts`**  
-- Non-interactive path: validate flags → fetch PR (to get current reviewer UUIDs for add/remove merge) → build patch → call `updatePullRequest` → print success with PR URL.
-- Interactive path: fetch PR → prompt each field (title, description, target, add/remove reviewers, close-source-branch) with current values as defaults → diff against current → if nothing changed, print "Nothing to update" and exit → show change summary → confirm → call `updatePullRequest`.
+- No-flags path: fetch PR → print current field values + hint listing available flags, exit 0.
+- With-flags path: fetch PR → resolve reviewer usernames → build patch → if patch empty print "Nothing to update", exit 0 → if `-y` skip confirm, else show change summary and confirm → call `updatePullRequest` → print success with PR link.
 
 ## Data Flow
 
-### Non-interactive
+### No flags (suggest mode)
 
 ```
-parse flags
-  → fetch current PR (needed for reviewer merge)
+fetch current PR (spinner)
+  → print current values:
+      Title:       <title>
+      Description: <description>
+      Target:      <destBranch>
+      Reviewers:   <reviewerNames>
+      Close source branch: <yes|no>
+  → print hint:
+      Run with flags to update, e.g.:
+        --title "New title"
+        --add-reviewer <username>
+        ...
+  → exit 0
+```
+
+### With flags (non-interactive: -y present)
+
+```
+fetch current PR (needed for reviewer merge)
   → resolve --add-reviewer / --remove-reviewer usernames to UUIDs (parallel)
   → buildReviewerPatch: merge current + add − remove
   → diffFields: collect all changed fields into patch
@@ -104,21 +132,18 @@ parse flags
   → print success + PR link
 ```
 
-### Interactive
+### With flags (confirm: no -y)
 
 ```
-fetch current PR (spinner)
-  → prompt title       (default: current title)
-  → prompt description (default: current description)
-  → prompt target      (default: current destBranch)
-  → prompt add-reviewers   (comma-separated, default: empty)
-  → prompt remove-reviewers (comma-separated, default: empty)
-  → prompt close-source-branch (default: current value)
-  → diffFields
-  → if nothing changed: print "Nothing to update", exit 0
-  → show change summary table
-  → confirm? (default: false)
+fetch current PR
   → resolve reviewer usernames
+  → buildReviewerPatch + diffFields
+  → if patch empty: print "Nothing to update", exit 0
+  → print change summary:
+      Title:   "old" → "new"
+      Target:  old → new
+      ...
+  → confirm? (default: false)
   → updatePullRequest(patch)
   → print success + PR link
 ```
