@@ -27,6 +27,7 @@ export function register(pr: Command): void {
       [] as string[]
     )
     .option('--close-source-branch', 'Enable close-source-branch on merge')
+    .option('--no-close-source-branch', 'Disable close-source-branch on merge')
     .option('-y, --yes', 'Skip confirmation prompt')
     .action(async (id, options) => {
       requireAuth()

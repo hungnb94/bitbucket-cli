@@ -724,6 +724,13 @@ describe('pr update', () => {
     errorSpy.mockRestore()
   })
 
+  it('exits with 1 and error when --target is empty string', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    await expect(runCommand(['pr', 'update', '42', '--target', ''])).rejects.toThrow('process.exit(1)')
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('--target cannot be empty'))
+    errorSpy.mockRestore()
+  })
+
   it('exits with 1 when buildReviewerPatch throws (unknown reviewer)', async () => {
     mockGetPullRequest.mockResolvedValue(MOCK_PR)
     mockBuildReviewerPatch.mockRejectedValue(new Error('Reviewer not found: ghost'))

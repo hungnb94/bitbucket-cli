@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { buildClient, withRetry, throwApiError } from './client.js'
+import { buildClient, withRetry } from './client.js'
 
 export async function getUserByUsername(
   username: string
