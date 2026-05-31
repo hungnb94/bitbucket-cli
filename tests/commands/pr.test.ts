@@ -108,13 +108,29 @@ describe('pr list', () => {
   })
 
   it('exits with 1 when --workspace is empty string', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     await expect(runCommand(['pr', '--workspace', '', 'list'])).rejects.toThrow('process.exit(1)')
     expect(mockGetRepoContext).not.toHaveBeenCalled()
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('--workspace cannot be empty'))
+    errorSpy.mockRestore()
   })
 
   it('exits with 1 when --repo is empty string', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     await expect(runCommand(['pr', '--repo', '', 'list'])).rejects.toThrow('process.exit(1)')
     expect(mockGetRepoContext).not.toHaveBeenCalled()
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('--repo cannot be empty'))
+    errorSpy.mockRestore()
+  })
+
+  it('exits with 1 when --workspace provided but getRepoContext throws', async () => {
+    mockGetRepoContext.mockImplementation(() => { throw new Error('not a bitbucket repo') })
+    await expect(runCommand(['pr', '--workspace', 'flagws', 'list'])).rejects.toThrow('process.exit(1)')
+  })
+
+  it('exits with 1 when --repo provided but getRepoContext throws', async () => {
+    mockGetRepoContext.mockImplementation(() => { throw new Error('not a bitbucket repo') })
+    await expect(runCommand(['pr', '--repo', 'flagrepo', 'list'])).rejects.toThrow('process.exit(1)')
   })
 
   it('uses --workspace and --repo flags when both provided, skipping getRepoContext', async () => {

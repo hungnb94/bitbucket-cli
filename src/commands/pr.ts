@@ -25,11 +25,11 @@ function requireAuth(): void {
 function getContext(flags?: { workspace?: string; repo?: string }): { workspace: string; repo: string } {
   if (flags?.workspace !== undefined && flags.workspace.trim() === '') {
     console.error(chalk.red('✗') + ' --workspace cannot be empty')
-    process.exit(1) as never
+    process.exit(1)
   }
   if (flags?.repo !== undefined && flags.repo.trim() === '') {
     console.error(chalk.red('✗') + ' --repo cannot be empty')
-    process.exit(1) as never
+    process.exit(1)
   }
   try {
     if (flags?.workspace && flags?.repo) {
@@ -42,7 +42,7 @@ function getContext(flags?: { workspace?: string; repo?: string }): { workspace:
     }
   } catch (error) {
     console.error(chalk.red('✗') + ' ' + (error instanceof Error ? error.message : String(error)))
-    process.exit(1) as never
+    process.exit(1)
   }
 }
 
