@@ -8,7 +8,7 @@
 
 ## Overview
 
-Implements the `bitbucket pr` command group: `create`, `list`, `view`, `diff`, `approve`, `decline`, `comment`. Workspace and repo are auto-detected from the git remote origin of the current directory, or can be specified explicitly via `--workspace` and `--repo` flags on the parent `pr` command. No AI review (`pr review`) in scope.
+Implements the `bitbucket pr` command group: `create`, `list`, `view`, `diff`, `approve`, `decline`, `comment`, `update`. Workspace and repo are auto-detected from the git remote origin of the current directory, or can be specified explicitly via `--workspace` and `--repo` flags on the parent `pr` command. No AI review (`pr review`) in scope.
 
 ---
 
@@ -18,13 +18,22 @@ Implements the `bitbucket pr` command group: `create`, `list`, `view`, `diff`, `
 src/
 ├── commands/
 │   ├── auth.ts           # (existing)
-│   └── pr.ts             # thin Commander wiring for 7 pr subcommands
+│   └── pr/
+│       ├── index.ts      # createPrCommand(), registers all pr subcommands
+│       ├── helpers.ts    # requireAuth, getContext, parseId
+│       ├── approve.ts, comment.ts, create.ts, decline.ts
+│       ├── diff.ts, list.ts, view.ts
+│       └── update.ts     # pr update subcommand
 ├── pr/
 │   ├── index.ts          # re-export public API
 │   ├── remote.ts         # parse git remote origin → { workspace, repo }; branch helpers
-│   └── format.ts         # table, diff highlighting, pr view layout
+│   ├── format.ts         # table, diff highlighting, pr view layout
+│   ├── types.ts          # PullRequest type
+│   └── update.ts         # UpdatePatch/UpdateInput types, resolveReviewerUsernames, buildReviewerPatch, diffFields
 ├── api/
-│   └── bitbucket.ts      # extended with PR API methods
+│   ├── client.ts         # buildClient, withRetry, throwApiError
+│   ├── pr.ts             # PR API methods
+│   └── users.ts          # getUserByUsername
 └── index.ts              # addCommand(createPrCommand())
 ```
 
@@ -106,6 +115,7 @@ bitbucket pr [--workspace <ws>] [--repo <repo>] diff <id>
 bitbucket pr [--workspace <ws>] [--repo <repo>] approve <id> [-y]
 bitbucket pr [--workspace <ws>] [--repo <repo>] decline <id> [-y]
 bitbucket pr [--workspace <ws>] [--repo <repo>] comment <id> <message> [--file <path> --line <n>]
+bitbucket pr [--workspace <ws>] [--repo <repo>] update <id> [--title <text>] [--description <text>] [--target <branch>] [--add-reviewer <username>] [--remove-reviewer <username>] [--close-source-branch | --no-close-source-branch] [-y]
 ```
 
 ### `pr create`
@@ -203,6 +213,48 @@ bitbucket pr comment 42 "nit" --file src/foo.ts --line 15
 ✓ Inline comment posted on src/foo.ts:15
 ```
 
+### `pr update <id>`
+
+With no flags, fetches the PR and prints current values with flag hints (exit 0). With flags, shows a change summary and prompts for confirmation before submitting. Use `-y` to skip the prompt.
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--title <text>` | Update PR title (cannot be empty) |
+| `--description <text>` | Update PR description (empty string clears it) |
+| `--target <branch>` | Update destination branch (cannot be empty) |
+| `--add-reviewer <username>` | Add reviewer by Bitbucket username (repeatable) |
+| `--remove-reviewer <username>` | Remove reviewer by Bitbucket username (repeatable) |
+| `--close-source-branch` | Enable close-source-branch on merge |
+| `--no-close-source-branch` | Disable close-source-branch on merge |
+| `-y, --yes` | Skip confirmation prompt |
+
+**No flags (suggest mode):**
+```
+  Title:               feat: android in-app update
+  Description:         Adds in-app update flow for Android.
+  Target:              main
+  Reviewers:           minh, an
+  Close source branch: no
+
+Run with flags to update, e.g.:
+  --title "New title"
+  --add-reviewer <username>
+  --remove-reviewer <username>
+  --target <branch>
+  --close-source-branch / --no-close-source-branch
+```
+
+**Confirm mode (with flags, no `-y`):**
+```
+  Title:   "old title" → new title
+  Reviewers: +alice  -bob
+
+? Update PR #42? (y/N)
+✓ PR #42 updated: https://bitbucket.org/ws/repo/pull-requests/42
+```
+
 ---
 
 ## Error Handling
@@ -222,6 +274,10 @@ bitbucket pr comment 42 "nit" --file src/foo.ts --line 15
 | `--file` without `--line` or vice versa | `✗ --file and --line must be used together.` + exit(1) |
 | Network timeout | Retry once, then fail with `Connection failed after retry.` |
 | User cancels confirm prompt (Ctrl+C) | exit(0), no error message |
+| `pr update` — empty `--title` or `--target` | `✗ --title cannot be empty.` + exit(1) |
+| `pr update` — unknown reviewer username | `✗ Reviewer not found: <username>` (all failures listed before exit) |
+| `pr update` — same username in add and remove | `✗ <username> appears in both --add-reviewer and --remove-reviewer.` + exit(1) |
+| `pr update` — no fields changed | `Nothing to update.` + exit(0) |
 
 ---
 
@@ -229,8 +285,10 @@ bitbucket pr comment 42 "nit" --file src/foo.ts --line 15
 
 - `tests/pr/remote.test.ts` — HTTPS and SSH URL parsing, invalid URL, non-Bitbucket remote; `getCurrentBranch()` (normal, detached HEAD); `detectDefaultTarget()` (main exists, master fallback, neither found)
 - `tests/pr/format.test.ts` — `formatPrList()` correct columns and colors, `formatDiff()` +/- line colors
-- `tests/api/bitbucket-pr.test.ts` — mocked axios for each API method; `createPullRequest()` (success, 409 conflict); general and inline comment
-- `tests/commands/pr.test.ts` — happy path per subcommand; happy path with `--yes`; not-logged-in guard; source == target; invalid arg guards
+- `tests/pr/update.test.ts` — `resolveReviewerUsernames` (success, aggregated errors, empty); `buildReviewerPatch` (add, remove, unchanged, duplicate throws); `diffFields` (field-by-field change detection)
+- `tests/api/bitbucket-pr.test.ts` — mocked axios for each API method; `createPullRequest()` (success, 409 conflict); `updatePullRequest()` (success, 404, reviewer UUIDs); general and inline comment
+- `tests/api/users.test.ts` — `getUserByUsername` (success, 404, non-404 error)
+- `tests/commands/pr.test.ts` — happy path per subcommand; happy path with `--yes`; not-logged-in guard; source == target; invalid arg guards; `pr update` suggest/non-interactive/confirm/cancelled/nothing-to-update/validation modes
 
 ---
 

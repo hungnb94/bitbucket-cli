@@ -171,6 +171,27 @@ Options:
 - `--description <text>` — PR description
 - `-y, --yes` — Skip confirmation prompt
 
+### Update
+
+```console
+$ bitbucket pr update 42
+$ bitbucket pr update 42 --title "New title" --yes
+$ bitbucket pr update 42 --add-reviewer alice --remove-reviewer bob
+$ bitbucket pr update 42 --no-close-source-branch --yes
+```
+
+With no flags, prints current PR values and flag hints. With flags, shows a change summary and prompts for confirmation before updating. Use `-y, --yes` to skip the prompt (non-interactive).
+
+Options:
+- `--title <text>` — Update PR title (cannot be empty)
+- `--description <text>` — Update PR description (empty string clears the description)
+- `--target <branch>` — Update destination branch (cannot be empty)
+- `--add-reviewer <username>` — Add a reviewer by Bitbucket username (repeatable)
+- `--remove-reviewer <username>` — Remove a reviewer by Bitbucket username (repeatable)
+- `--close-source-branch` — Enable close-source-branch on merge
+- `--no-close-source-branch` — Disable close-source-branch on merge
+- `-y, --yes` — Skip confirmation prompt
+
 ## Agent Skill
 
 ### Install the skill

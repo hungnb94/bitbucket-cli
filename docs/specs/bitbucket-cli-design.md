@@ -4,7 +4,7 @@
 
 ## Overview
 
-A TypeScript/Node.js CLI tool that connects to Bitbucket Cloud. Supports full PR workflow from the terminal — list, view, diff, approve, decline, comment.
+A TypeScript/Node.js CLI tool that connects to Bitbucket Cloud. Supports full PR workflow from the terminal — list, view, diff, approve, decline, comment, create, update.
 
 ---
 
@@ -29,9 +29,21 @@ bitbucket-cli/
 │   ├── index.ts              # entry point, CLI router
 │   ├── commands/
 │   │   ├── auth.ts           # login, logout, whoami
-│   │   └── pr.ts             # list, view, diff, approve, decline, comment
+│   │   └── pr/
+│   │       ├── index.ts      # createPrCommand(), registers all pr subcommands
+│   │       ├── helpers.ts    # requireAuth, getContext, parseId
+│   │       ├── approve.ts
+│   │       ├── comment.ts
+│   │       ├── create.ts
+│   │       ├── decline.ts
+│   │       ├── diff.ts
+│   │       ├── list.ts
+│   │       ├── update.ts
+│   │       └── view.ts
 │   ├── api/
-│   │   └── bitbucket.ts      # Bitbucket REST API client (axios)
+│   │   ├── client.ts         # buildClient, withRetry, throwApiError
+│   │   ├── pr.ts             # Bitbucket PR REST API methods
+│   │   └── users.ts          # getUserByUsername
 │   ├── auth/
 │   │   ├── index.ts          # re-export public API
 │   │   ├── config.ts         # read/write ~/.config/bitbucket-cli/config.json
@@ -40,7 +52,8 @@ bitbucket-cli/
 │       ├── index.ts          # re-export public API
 │       ├── remote.ts         # parse git remote origin → { workspace, repo }
 │       ├── format.ts         # table, diff highlighting, pr view layout
-│       └── types.ts          # PullRequest type
+│       ├── types.ts          # PullRequest type
+│       └── update.ts         # UpdatePatch/UpdateInput types, reviewer resolution, field diff
 ├── package.json
 ├── tsconfig.json
 └── README.md
@@ -126,6 +139,19 @@ Posts a general comment on the PR.
 
 Flags:
 - `--file <path>` + `--line <n>` — post an inline comment on a specific line (both required together)
+
+### `bitbucket pr update <id>`
+
+Updates an existing PR. With no flags, prints current values and flag hints. With flags, shows a change summary and prompts for confirmation.
+
+Flags:
+- `--title <text>` — Update PR title (cannot be empty)
+- `--description <text>` — Update PR description (empty string clears it)
+- `--target <branch>` — Update destination branch (cannot be empty)
+- `--add-reviewer <username>` — Add a reviewer by Bitbucket username (repeatable)
+- `--remove-reviewer <username>` — Remove a reviewer by Bitbucket username (repeatable)
+- `--close-source-branch` / `--no-close-source-branch` — Toggle close-source-branch on merge
+- `-y, --yes` — Skip confirmation prompt
 
 ---
 
