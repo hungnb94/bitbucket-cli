@@ -23,6 +23,14 @@ function requireAuth(): void {
 }
 
 function getContext(flags?: { workspace?: string; repo?: string }): { workspace: string; repo: string } {
+  if (flags?.workspace !== undefined && flags.workspace.trim() === '') {
+    console.error(chalk.red('✗') + ' --workspace cannot be empty')
+    process.exit(1) as never
+  }
+  if (flags?.repo !== undefined && flags.repo.trim() === '') {
+    console.error(chalk.red('✗') + ' --repo cannot be empty')
+    process.exit(1) as never
+  }
   try {
     if (flags?.workspace && flags?.repo) {
       return { workspace: flags.workspace, repo: flags.repo }

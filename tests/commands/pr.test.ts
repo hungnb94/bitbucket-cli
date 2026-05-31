@@ -107,6 +107,16 @@ describe('pr list', () => {
     await expect(runCommand(['pr', 'list'])).rejects.toThrow('process.exit(1)')
   })
 
+  it('exits with 1 when --workspace is empty string', async () => {
+    await expect(runCommand(['pr', '--workspace', '', 'list'])).rejects.toThrow('process.exit(1)')
+    expect(mockGetRepoContext).not.toHaveBeenCalled()
+  })
+
+  it('exits with 1 when --repo is empty string', async () => {
+    await expect(runCommand(['pr', '--repo', '', 'list'])).rejects.toThrow('process.exit(1)')
+    expect(mockGetRepoContext).not.toHaveBeenCalled()
+  })
+
   it('uses --workspace and --repo flags when both provided, skipping getRepoContext', async () => {
     mockListPullRequests.mockResolvedValue([MOCK_PR])
     mockFormatPrList.mockReturnValue('formatted list')
