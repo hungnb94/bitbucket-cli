@@ -86,6 +86,12 @@ bitbucket auth whoami   # prints current user info from API
 
 ## PR Commands
 
+All `pr` subcommands accept two flags on the parent command to override git remote inference:
+- `--workspace <workspace>` — Bitbucket workspace
+- `--repo <repo>` — Bitbucket repository slug
+
+When both are provided, git remote inference is skipped entirely. Each flag is independent.
+
 ### `bitbucket pr list`
 
 ```
