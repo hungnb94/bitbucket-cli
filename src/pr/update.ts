@@ -19,10 +19,11 @@ export type UpdateInput = {
 }
 
 export async function resolveReviewerUsernames(
+  workspace: string,
   usernames: string[]
 ): Promise<{ uuid: string }[]> {
   if (usernames.length === 0) return []
-  const results = await Promise.allSettled(usernames.map((u) => getUserByUsername(u)))
+  const results = await Promise.allSettled(usernames.map((u) => getUserByUsername(workspace, u)))
   const errors = results
     .map((r) =>
       r.status === 'rejected'
@@ -39,7 +40,8 @@ export async function resolveReviewerUsernames(
 export async function buildReviewerPatch(
   currentUuids: string[],
   addNames: string[],
-  removeNames: string[]
+  removeNames: string[],
+  workspace: string
 ): Promise<{ uuid: string }[] | undefined> {
   const dups = addNames.filter((n) => removeNames.includes(n))
   if (dups.length > 0) {
@@ -51,8 +53,8 @@ export async function buildReviewerPatch(
   if (addNames.length === 0 && removeNames.length === 0) return undefined
 
   const [addUuids, removeUuids] = await Promise.all([
-    resolveReviewerUsernames(addNames),
-    resolveReviewerUsernames(removeNames),
+    resolveReviewerUsernames(workspace, addNames),
+    resolveReviewerUsernames(workspace, removeNames),
   ])
 
   const removeSet = new Set(removeUuids.map((r) => r.uuid))

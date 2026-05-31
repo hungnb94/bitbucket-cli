@@ -19,19 +19,21 @@ beforeEach(() => {
 
 describe('getUserByUsername', () => {
   it('returns uuid and displayName for a valid username', async () => {
-    mockGet.mockResolvedValue({ data: { uuid: '{uuid-alice}', display_name: 'Alice' } })
-    const result = await getUserByUsername('alice')
+    mockGet.mockResolvedValue({
+      data: { values: [{ user: { uuid: '{uuid-alice}', display_name: 'Alice' } }] },
+    })
+    const result = await getUserByUsername('myworkspace', 'alice')
     expect(result).toEqual({ uuid: '{uuid-alice}', displayName: 'Alice' })
-    expect(mockGet).toHaveBeenCalledWith('/users/alice')
+    expect(mockGet).toHaveBeenCalledWith('/workspaces/myworkspace/members', {
+      params: { q: 'nickname="alice"' },
+    })
   })
 
-  it('throws "Reviewer not found: <username>" on 404', async () => {
-    const err = Object.assign(new Error('Not Found'), {
-      isAxiosError: true,
-      response: { status: 404 },
-    })
-    mockGet.mockRejectedValue(err)
-    await expect(getUserByUsername('ghost')).rejects.toThrow('Reviewer not found: ghost')
+  it('throws "Reviewer not found: <username>" when values is empty', async () => {
+    mockGet.mockResolvedValue({ data: { values: [] } })
+    await expect(getUserByUsername('myworkspace', 'ghost')).rejects.toThrow(
+      'Reviewer not found: ghost'
+    )
   })
 
   it('propagates non-404 axios errors as throwApiError messages', async () => {
@@ -40,6 +42,8 @@ describe('getUserByUsername', () => {
       response: { status: 500 },
     })
     mockGet.mockRejectedValue(err)
-    await expect(getUserByUsername('alice')).rejects.toThrow('Request failed with status 500')
+    await expect(getUserByUsername('myworkspace', 'alice')).rejects.toThrow(
+      'Request failed with status 500'
+    )
   })
 })

@@ -30,32 +30,32 @@ beforeEach(() => {
 describe('buildReviewerPatch', () => {
   it('adds a new reviewer to the list', async () => {
     mockGetUserByUsername.mockResolvedValueOnce({ uuid: '{uuid-alice}', displayName: 'Alice' })
-    const result = await buildReviewerPatch(['{uuid-minh}'], ['alice'], [])
+    const result = await buildReviewerPatch(['{uuid-minh}'], ['alice'], [], 'myworkspace')
     expect(result).toEqual([{ uuid: '{uuid-minh}' }, { uuid: '{uuid-alice}' }])
   })
 
   it('removes an existing reviewer from the list', async () => {
     mockGetUserByUsername.mockResolvedValueOnce({ uuid: '{uuid-minh}', displayName: 'Minh' })
-    const result = await buildReviewerPatch(['{uuid-minh}'], [], ['minh'])
+    const result = await buildReviewerPatch(['{uuid-minh}'], [], ['minh'], 'myworkspace')
     expect(result).toEqual([])
   })
 
   it('returns undefined when resulting set equals current (no change)', async () => {
     mockGetUserByUsername.mockResolvedValueOnce({ uuid: '{uuid-minh}', displayName: 'Minh' })
-    const result = await buildReviewerPatch(['{uuid-minh}'], ['minh'], [])
+    const result = await buildReviewerPatch(['{uuid-minh}'], ['minh'], [], 'myworkspace')
     expect(result).toBeUndefined()
   })
 
   it('throws when same username appears in both add and remove', async () => {
     await expect(
-      buildReviewerPatch(['{uuid-minh}'], ['alice'], ['alice'])
+      buildReviewerPatch(['{uuid-minh}'], ['alice'], ['alice'], 'myworkspace')
     ).rejects.toThrow('alice appears in both --add-reviewer and --remove-reviewer')
   })
 
   it('throws aggregated error when a username cannot be resolved', async () => {
     mockGetUserByUsername.mockRejectedValueOnce(new Error('Reviewer not found: ghost'))
     await expect(
-      buildReviewerPatch(['{uuid-minh}'], ['ghost'], [])
+      buildReviewerPatch(['{uuid-minh}'], ['ghost'], [], 'myworkspace')
     ).rejects.toThrow('Reviewer not found: ghost')
   })
 })

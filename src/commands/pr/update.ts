@@ -102,7 +102,8 @@ export function register(pr: Command): void {
         const newReviewers = await buildReviewerPatch(
           current.reviewerUuids,
           input.addReviewers ?? [],
-          input.removeReviewers ?? []
+          input.removeReviewers ?? [],
+          workspace
         )
         const patch = diffFields(current, input, newReviewers)
 
