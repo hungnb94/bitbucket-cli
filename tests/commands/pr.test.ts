@@ -579,9 +579,32 @@ describe('pr create', () => {
   })
 
   it('exits with 1 when --source is an empty string', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     await expect(
       runCommand(['pr', 'create', '--title', 'feat: new', '--source', ''])
     ).rejects.toThrow('process.exit(1)')
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('--source branch name cannot be empty'))
+    errorSpy.mockRestore()
+  })
+
+  it('exits with 1 when --target is an empty string', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    await expect(
+      runCommand(['pr', 'create', '--title', 'feat: new', '--target', ''])
+    ).rejects.toThrow('process.exit(1)')
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('--target branch name cannot be empty'))
+    expect(mockDetectDefaultTarget).not.toHaveBeenCalled()
+    errorSpy.mockRestore()
+  })
+
+  it('exits with 1 when --target is whitespace only', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    await expect(
+      runCommand(['pr', 'create', '--title', 'feat: new', '--target', '   '])
+    ).rejects.toThrow('process.exit(1)')
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('--target branch name cannot be empty'))
+    expect(mockDetectDefaultTarget).not.toHaveBeenCalled()
+    errorSpy.mockRestore()
   })
 
   it('uses --workspace and --repo flags when both provided, skipping getRepoContext', async () => {

@@ -2,7 +2,15 @@ import { Command, Option } from 'commander'
 import { confirm } from '@inquirer/prompts'
 import chalk from 'chalk'
 import ora from 'ora'
-import { getRepoContext, getCurrentBranch, detectDefaultTarget, formatPrList, formatPrView, formatDiff } from '../pr/index.js'
+import {
+  getRepoContext,
+  getCurrentBranch,
+  detectDefaultTarget,
+  formatPrList,
+  formatPrView,
+  formatDiff,
+  type RepoContext
+} from '../pr/index.js'
 import {
   listPullRequests,
   getPullRequest,
@@ -22,23 +30,23 @@ function requireAuth(): void {
   }
 }
 
-function getContext(flags?: { workspace?: string; repo?: string }): { workspace: string; repo: string } {
+function getContext(flags?: { workspace?: string; repo?: string }): RepoContext {
   if (flags?.workspace !== undefined && flags.workspace.trim() === '') {
-    console.error(chalk.red('✗') + ' --workspace cannot be empty')
+    console.error(chalk.red('✗') + ' --workspace cannot be empty.')
     process.exit(1)
   }
   if (flags?.repo !== undefined && flags.repo.trim() === '') {
-    console.error(chalk.red('✗') + ' --repo cannot be empty')
+    console.error(chalk.red('✗') + ' --repo cannot be empty.')
     process.exit(1)
   }
   try {
     if (flags?.workspace && flags?.repo) {
-      return { workspace: flags.workspace, repo: flags.repo }
+      return { workspace: flags.workspace.trim(), repo: flags.repo.trim() }
     }
     const inferred = getRepoContext()
     return {
-      workspace: flags?.workspace ?? inferred.workspace,
-      repo:      flags?.repo      ?? inferred.repo,
+      workspace: flags?.workspace?.trim() ?? inferred.workspace,
+      repo:      flags?.repo?.trim()      ?? inferred.repo,
     }
   } catch (error) {
     console.error(chalk.red('✗') + ' ' + (error instanceof Error ? error.message : String(error)))
@@ -257,33 +265,39 @@ export function createPrCommand(): Command {
 
       let sourceBranch: string
       if (options.source !== undefined) {
-        if (!options.source.trim()) {
-          console.error(chalk.red('✗') + ' --source branch name cannot be empty.')
-          process.exit(1) as never
-        }
         sourceBranch = options.source.trim()
+        if (!sourceBranch) {
+          console.error(chalk.red('✗') + ' --source branch name cannot be empty.')
+          process.exit(1)
+        }
       } else {
         try {
           sourceBranch = getCurrentBranch()
         } catch (error) {
           console.error(chalk.red('✗') + ' ' + (error instanceof Error ? error.message : String(error)))
-          process.exit(1) as never
+          process.exit(1)
         }
       }
 
-      let targetBranch: string = options.target
-      if (!targetBranch?.trim()) {
+      let targetBranch: string
+      if (options.target !== undefined) {
+        targetBranch = options.target.trim()
+        if (!targetBranch) {
+          console.error(chalk.red('✗') + ' --target branch name cannot be empty.')
+          process.exit(1)
+        }
+      } else {
         try {
           targetBranch = detectDefaultTarget()
         } catch (error) {
           console.error(chalk.red('✗') + ' ' + (error instanceof Error ? error.message : String(error)))
-          process.exit(1) as never
+          process.exit(1)
         }
       }
 
       if (sourceBranch === targetBranch) {
         console.error(chalk.red('✗') + ' Source and target branch must be different.')
-        process.exit(1) as never
+        process.exit(1)
       }
 
       let spinner: ReturnType<typeof ora> | undefined
