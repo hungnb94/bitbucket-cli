@@ -9,6 +9,7 @@ vi.mock('../../src/auth/index.js', () => ({
 
 const mockGet = vi.fn()
 const mockPost = vi.fn()
+const mockPut = vi.fn()
 
 const {
   listPullRequests,
@@ -19,6 +20,7 @@ const {
   declinePullRequest,
   postComment,
   createPullRequest,
+  updatePullRequest,
 } = await import('../../src/api/pr.js')
 
 const WS = 'myworkspace'
@@ -26,7 +28,7 @@ const REPO = 'myrepo'
 
 beforeEach(() => {
   vi.resetAllMocks()
-  vi.mocked(axios.create).mockReturnValue({ get: mockGet, post: mockPost } as any)
+  vi.mocked(axios.create).mockReturnValue({ get: mockGet, post: mockPost, put: mockPut } as any)
 })
 
 function makeAxiosError(status: number | null, code?: string) {
@@ -242,5 +244,42 @@ describe('createPullRequest', () => {
     await expect(
       createPullRequest(WS, REPO, 'feat: new', 'feature/new', 'main')
     ).rejects.toThrow('A PR already exists for this branch.')
+  })
+})
+
+describe('updatePullRequest', () => {
+  it('sends PUT with patch body and returns id + url', async () => {
+    mockPut.mockResolvedValue({
+      data: { id: 42, links: { html: { href: 'https://bitbucket.org/ws/repo/pull-requests/42' } } },
+    })
+    const patch = { title: 'new title' }
+    const result = await updatePullRequest(WS, REPO, 42, patch)
+    expect(result).toEqual({
+      id: 42,
+      links: { html: { href: 'https://bitbucket.org/ws/repo/pull-requests/42' } },
+    })
+    expect(mockPut).toHaveBeenCalledWith(
+      '/repositories/myworkspace/myrepo/pullrequests/42',
+      patch
+    )
+  })
+
+  it('throws "PR #42 not found." on 404', async () => {
+    mockPut.mockRejectedValue(makeAxiosError(404))
+    await expect(updatePullRequest(WS, REPO, 42, { title: 'x' })).rejects.toThrow(
+      'PR #42 not found.'
+    )
+  })
+
+  it('sends full reviewer UUID array when reviewers included in patch', async () => {
+    mockPut.mockResolvedValue({
+      data: { id: 42, links: { html: { href: 'https://bitbucket.org/ws/repo/pull-requests/42' } } },
+    })
+    const patch = { reviewers: [{ uuid: '{uuid-alice}' }, { uuid: '{uuid-bob}' }] }
+    await updatePullRequest(WS, REPO, 42, patch)
+    expect(mockPut).toHaveBeenCalledWith(
+      '/repositories/myworkspace/myrepo/pullrequests/42',
+      patch
+    )
   })
 })

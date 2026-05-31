@@ -20,6 +20,14 @@ type BitbucketDiffstatEntry = {
   lines_removed: number
 }
 
+export type UpdatePatch = {
+  title?: string
+  description?: string
+  destination?: { branch: { name: string } }
+  reviewers?: { uuid: string }[]
+  close_source_branch?: boolean
+}
+
 function toPullRequest(data: BitbucketPRResponse): PullRequest {
   return {
     id: data.id,
@@ -171,4 +179,20 @@ export async function createPullRequest(
       throw error
     }
   })
+}
+
+export async function updatePullRequest(
+  workspace: string,
+  repo: string,
+  id: number,
+  patch: UpdatePatch
+): Promise<{ id: number; links: { html: { href: string } } }> {
+  return withRetry(async () => {
+    const client = buildClient()
+    const response = await client.put<{ id: number; links: { html: { href: string } } }>(
+      `/repositories/${workspace}/${repo}/pullrequests/${id}`,
+      patch
+    )
+    return response.data
+  }, id)
 }
