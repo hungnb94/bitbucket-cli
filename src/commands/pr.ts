@@ -2,7 +2,15 @@ import { Command, Option } from 'commander'
 import { confirm } from '@inquirer/prompts'
 import chalk from 'chalk'
 import ora from 'ora'
-import { getRepoContext, getCurrentBranch, detectDefaultTarget, formatPrList, formatPrView, formatDiff } from '../pr/index.js'
+import {
+  getRepoContext,
+  getCurrentBranch,
+  detectDefaultTarget,
+  formatPrList,
+  formatPrView,
+  formatDiff,
+  type RepoContext
+} from '../pr/index.js'
 import {
   listPullRequests,
   getPullRequest,
@@ -22,7 +30,7 @@ function requireAuth(): void {
   }
 }
 
-function getContext(flags?: { workspace?: string; repo?: string }): { workspace: string; repo: string } {
+function getContext(flags?: { workspace?: string; repo?: string }): RepoContext {
   if (flags?.workspace !== undefined && flags.workspace.trim() === '') {
     console.error(chalk.red('✗') + ' --workspace cannot be empty')
     process.exit(1)
@@ -33,12 +41,12 @@ function getContext(flags?: { workspace?: string; repo?: string }): { workspace:
   }
   try {
     if (flags?.workspace && flags?.repo) {
-      return { workspace: flags.workspace, repo: flags.repo }
+      return { workspace: flags.workspace.trim(), repo: flags.repo.trim() }
     }
     const inferred = getRepoContext()
     return {
-      workspace: flags?.workspace ?? inferred.workspace,
-      repo:      flags?.repo      ?? inferred.repo,
+      workspace: flags?.workspace?.trim() ?? inferred.workspace,
+      repo:      flags?.repo?.trim()      ?? inferred.repo,
     }
   } catch (error) {
     console.error(chalk.red('✗') + ' ' + (error instanceof Error ? error.message : String(error)))
@@ -257,11 +265,11 @@ export function createPrCommand(): Command {
 
       let sourceBranch: string
       if (options.source !== undefined) {
-        if (!options.source.trim()) {
+        sourceBranch = options.source.trim()
+        if (!sourceBranch) {
           console.error(chalk.red('✗') + ' --source branch name cannot be empty.')
           process.exit(1) as never
         }
-        sourceBranch = options.source.trim()
       } else {
         try {
           sourceBranch = getCurrentBranch()
@@ -271,8 +279,8 @@ export function createPrCommand(): Command {
         }
       }
 
-      let targetBranch: string = options.target
-      if (!targetBranch?.trim()) {
+      let targetBranch: string = options.target?.trim() ?? ''
+      if (!targetBranch) {
         try {
           targetBranch = detectDefaultTarget()
         } catch (error) {
