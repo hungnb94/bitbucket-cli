@@ -29,7 +29,7 @@ const mockGetPullRequestDiff = vi.fn()
 const mockApprovePullRequest = vi.fn()
 const mockDeclinePullRequest = vi.fn()
 const mockPostComment = vi.fn()
-vi.mock('../../src/api/bitbucket.js', () => ({
+vi.mock('../../src/api/pr.js', () => ({
   listPullRequests: mockListPullRequests,
   getPullRequest: mockGetPullRequest,
   getPullRequestDiffStat: mockGetPullRequestDiffStat,
@@ -52,7 +52,7 @@ vi.mock('ora', () => ({
   })),
 }))
 
-const { createPrCommand } = await import('../../src/commands/pr.js')
+const { createPrCommand } = await import('../../src/commands/pr/index.js')
 
 const CONTEXT = { workspace: 'myworkspace', repo: 'myrepo' }
 const MOCK_PR = {
