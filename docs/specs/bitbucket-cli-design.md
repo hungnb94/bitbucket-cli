@@ -140,6 +140,17 @@ Posts a general comment on the PR.
 Flags:
 - `--file <path>` + `--line <n>` — post an inline comment on a specific line (both required together)
 
+### `bitbucket pr create`
+
+Source branch defaults to the current git branch but can be overridden with `--source`. Target branch defaults to `main` or `master` (auto-detected).
+
+Flags:
+- `--title <text>` — PR title (required)
+- `--description <text>` — PR description
+- `--source <branch>` — Source branch (default: current git branch)
+- `--target <branch>` — Target branch (default: auto-detect `main`/`master`)
+- `-y, --yes` — Skip confirmation prompt
+
 ### `bitbucket pr update <id>`
 
 Updates an existing PR. With no flags, prints current values and flag hints. With flags, shows a change summary and prompts for confirmation.

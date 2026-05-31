@@ -1,9 +1,5 @@
 # PR Commands — Design Spec
 
-**Date:** 2026-05-30  
-**Status:** Approved  
-**Branch:** feature/pr
-
 ---
 
 ## Overview
@@ -108,7 +104,7 @@ The parent `pr` command accepts two flags that apply to all subcommands:
 Each flag is independent. When both are provided, git remote inference is skipped entirely.
 
 ```
-bitbucket pr [--workspace <ws>] [--repo <repo>] create --title <title> [--description <text>] [--target <branch>] [--yes]
+bitbucket pr [--workspace <ws>] [--repo <repo>] create --title <title> [--description <text>] [--source <branch>] [--target <branch>] [--yes]
 bitbucket pr [--workspace <ws>] [--repo <repo>] list [--state open|merged|declined|all] [--limit <n>]
 bitbucket pr [--workspace <ws>] [--repo <repo>] view <id>
 bitbucket pr [--workspace <ws>] [--repo <repo>] diff <id>
@@ -120,7 +116,7 @@ bitbucket pr [--workspace <ws>] [--repo <repo>] update <id> [--title <text>] [--
 
 ### `pr create`
 
-Source branch is auto-detected from the current git branch. Target branch defaults to `main` or `master` (auto-detected).
+Source branch defaults to the current git branch but can be overridden with `--source`. Target branch defaults to `main` or `master` (auto-detected).
 
 **Options:**
 
@@ -128,6 +124,7 @@ Source branch is auto-detected from the current git branch. Target branch defaul
 |------|----------|---------|-------------|
 | `--title` | Yes | — | PR title |
 | `--description` | No | (none) | PR description |
+| `--source` | No | current branch | Source branch to create the PR from |
 | `--target` | No | auto-detect | Target branch; auto-detects `main` then `master` |
 | `--yes` / `-y` | No | false | Skip confirmation prompt (non-interactive) |
 
