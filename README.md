@@ -171,6 +171,16 @@ Options:
 - `--description <text>` — PR description
 - `-y, --yes` — Skip confirmation prompt
 
+## Agent Skill
+
+### Install the skill
+
+```bash
+npx skills add hungnb94/bitbucket-cli --skill bitbucket-cli
+
+npx skills add https://github.com/hungnb94/bitbucket-cli --skill bitbucket-cli
+```
+
 ## Configuration
 
 Credentials are saved to `~/.config/bitbucket-cli/config.json` with permissions `600`.
