@@ -19,7 +19,7 @@ const {
   declinePullRequest,
   postComment,
   createPullRequest,
-} = await import('../../src/api/bitbucket.js')
+} = await import('../../src/api/pr.js')
 
 const WS = 'myworkspace'
 const REPO = 'myrepo'

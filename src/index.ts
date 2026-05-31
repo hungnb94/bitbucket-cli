@@ -1,6 +1,6 @@
 import { Command } from 'commander'
 import { createAuthCommand } from './commands/auth.js'
-import { createPrCommand } from './commands/pr.js'
+import { createPrCommand } from './commands/pr/index.js'
 import { createRequire } from 'module'
 
 const require = createRequire(import.meta.url)
