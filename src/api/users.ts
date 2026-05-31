@@ -15,9 +15,6 @@ export async function getUserByUsername(
       if (axios.isAxiosError(error) && error.response?.status === 404) {
         throw new Error(`Reviewer not found: ${username}`)
       }
-      if (axios.isAxiosError(error)) {
-        throwApiError(error)
-      }
       throw error
     }
   })
