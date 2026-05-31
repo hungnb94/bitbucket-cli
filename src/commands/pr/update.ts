@@ -122,9 +122,9 @@ export function register(pr: Command): void {
             if (removes.length > 0) parts.push(removes.map((n) => `-${n}`).join(', '))
             console.log(`  Reviewers: ${parts.join('  ')}`)
           }
-          if (patch.close_source_branch !== undefined) {
+          if (patch.closeSourceBranch !== undefined) {
             console.log(
-              `  Close source branch: ${chalk.dim(current.closeSourceBranch ? 'yes' : 'no')} → ${patch.close_source_branch ? 'yes' : 'no'}`
+              `  Close source branch: ${chalk.dim(current.closeSourceBranch ? 'yes' : 'no')} → ${patch.closeSourceBranch ? 'yes' : 'no'}`
             )
           }
           console.log()

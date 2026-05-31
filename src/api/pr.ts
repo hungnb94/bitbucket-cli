@@ -1,5 +1,6 @@
 import axios from 'axios'
 import type { PullRequest, DiffStat } from '../pr/types.js'
+import type { UpdatePatch } from '../pr/update.js'
 import { buildClient, withRetry } from './client.js'
 
 type BitbucketPRResponse = {
@@ -18,14 +19,6 @@ type BitbucketPRResponse = {
 type BitbucketDiffstatEntry = {
   lines_added: number
   lines_removed: number
-}
-
-export type UpdatePatch = {
-  title?: string
-  description?: string
-  destination?: { branch: { name: string } }
-  reviewers?: { uuid: string }[]
-  close_source_branch?: boolean
 }
 
 function toPullRequest(data: BitbucketPRResponse): PullRequest {
@@ -189,9 +182,13 @@ export async function updatePullRequest(
 ): Promise<{ id: number; links: { html: { href: string } } }> {
   return withRetry(async () => {
     const client = buildClient()
+    const { closeSourceBranch, ...rest } = patch
+    const body = closeSourceBranch !== undefined
+      ? { ...rest, close_source_branch: closeSourceBranch }
+      : rest
     const response = await client.put<{ id: number; links: { html: { href: string } } }>(
       `/repositories/${workspace}/${repo}/pullrequests/${id}`,
-      patch
+      body
     )
     return response.data
   }, id)

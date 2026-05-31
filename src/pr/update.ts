@@ -1,6 +1,13 @@
 import type { PullRequest } from './types.js'
 import { getUserByUsername } from '../api/users.js'
-import type { UpdatePatch } from '../api/pr.js'
+
+export type UpdatePatch = {
+  title?: string
+  description?: string
+  destination?: { branch: { name: string } }
+  reviewers?: { uuid: string }[]
+  closeSourceBranch?: boolean
+}
 
 export type UpdateInput = {
   title?: string
@@ -19,7 +26,7 @@ export async function resolveReviewerUsernames(
   const errors = results
     .map((r, i) =>
       r.status === 'rejected'
-        ? `  ${usernames[i]}: ${r.reason instanceof Error ? r.reason.message : String(r.reason)}`
+        ? (r.reason instanceof Error ? r.reason.message : String(r.reason))
         : null
     )
     .filter((e): e is string => e !== null)
@@ -37,7 +44,7 @@ export async function buildReviewerPatch(
   const dups = addNames.filter((n) => removeNames.includes(n))
   if (dups.length > 0) {
     throw new Error(
-      dups.map((n) => `✗ ${n} appears in both --add-reviewer and --remove-reviewer.`).join('\n')
+      dups.map((n) => `${n} appears in both --add-reviewer and --remove-reviewer.`).join('\n')
     )
   }
 
@@ -86,7 +93,7 @@ export function diffFields(
     input.closeSourceBranch !== undefined &&
     input.closeSourceBranch !== current.closeSourceBranch
   ) {
-    patch.close_source_branch = input.closeSourceBranch
+    patch.closeSourceBranch = input.closeSourceBranch
   }
 
   return patch

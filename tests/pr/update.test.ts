@@ -112,9 +112,9 @@ describe('diffFields', () => {
     expect(diffFields(BASE_PR, {}, newReviewers)).toEqual({ reviewers: newReviewers })
   })
 
-  it('includes close_source_branch when changed', () => {
+  it('includes closeSourceBranch when changed', () => {
     expect(diffFields(BASE_PR, { closeSourceBranch: true })).toEqual({
-      close_source_branch: true,
+      closeSourceBranch: true,
     })
   })
 
