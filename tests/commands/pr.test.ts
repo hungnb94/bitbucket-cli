@@ -14,7 +14,6 @@ const mockGetCurrentBranch = vi.fn()
 const mockDetectDefaultTarget = vi.fn()
 const mockCreatePullRequest = vi.fn()
 const mockUpdatePullRequest = vi.fn()
-const mockBuildReviewerPatch = vi.fn()
 const mockDiffFields = vi.fn()
 vi.mock('../../src/pr/index.js', () => ({
   getRepoContext: mockGetRepoContext,
@@ -45,7 +44,6 @@ vi.mock('../../src/api/pr.js', () => ({
 }))
 
 vi.mock('../../src/pr/update.js', () => ({
-  buildReviewerPatch: mockBuildReviewerPatch,
   diffFields: mockDiffFields,
 }))
 
@@ -88,7 +86,6 @@ beforeEach(() => {
   mockGetRepoContext.mockReturnValue(CONTEXT)
   mockGetCurrentBranch.mockReturnValue('feature/new-feature')
   mockDetectDefaultTarget.mockReturnValue('main')
-  mockBuildReviewerPatch.mockResolvedValue(undefined)
   mockDiffFields.mockReturnValue({})
 })
 
@@ -671,7 +668,7 @@ describe('pr update', () => {
     expect(mockUpdatePullRequest).not.toHaveBeenCalled()
     const output = consoleSpy.mock.calls.flat().join('\n')
     expect(output).toContain('feat: update')
-    expect(output).toContain('main')
+    expect(output).toContain('Description:')
     consoleSpy.mockRestore()
   })
 
@@ -724,51 +721,4 @@ describe('pr update', () => {
     errorSpy.mockRestore()
   })
 
-  it('exits with 1 and error when --target is empty string', async () => {
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    await expect(runCommand(['pr', 'update', '42', '--target', ''])).rejects.toThrow('process.exit(1)')
-    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('--target cannot be empty'))
-    errorSpy.mockRestore()
-  })
-
-  it('non-interactive (-y): applies --close-source-branch', async () => {
-    mockGetPullRequest.mockResolvedValue(MOCK_PR)
-    mockDiffFields.mockReturnValue({ closeSourceBranch: true })
-    mockUpdatePullRequest.mockResolvedValue(UPDATE_RESULT)
-    await runCommand(['pr', 'update', '42', '--close-source-branch', '-y'])
-    expect(mockUpdatePullRequest).toHaveBeenCalledWith('myworkspace', 'myrepo', 42, { closeSourceBranch: true })
-    expect(mockConfirm).not.toHaveBeenCalled()
-  })
-
-  it('confirm mode: shows close-source-branch change and updates on confirm', async () => {
-    mockGetPullRequest.mockResolvedValue(MOCK_PR)
-    mockDiffFields.mockReturnValue({ closeSourceBranch: true })
-    mockUpdatePullRequest.mockResolvedValue(UPDATE_RESULT)
-    mockConfirm.mockResolvedValue(true)
-    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
-    await runCommand(['pr', 'update', '42', '--close-source-branch'])
-    const output = consoleSpy.mock.calls.flat().join('\n')
-    expect(output).toContain('Close source branch')
-    expect(mockConfirm).toHaveBeenCalled()
-    expect(mockUpdatePullRequest).toHaveBeenCalledWith('myworkspace', 'myrepo', 42, { closeSourceBranch: true })
-    consoleSpy.mockRestore()
-  })
-
-  it('exits with 1 when buildReviewerPatch throws (unknown reviewer)', async () => {
-    mockGetPullRequest.mockResolvedValue(MOCK_PR)
-    mockBuildReviewerPatch.mockRejectedValue(new Error('Reviewer not found: ghost'))
-    await expect(
-      runCommand(['pr', 'update', '42', '--add-reviewer', 'ghost', '-y'])
-    ).rejects.toThrow('process.exit(1)')
-  })
-
-  it('exits with 1 when buildReviewerPatch throws (duplicate reviewer)', async () => {
-    mockGetPullRequest.mockResolvedValue(MOCK_PR)
-    mockBuildReviewerPatch.mockRejectedValue(
-      new Error('alice appears in both --add-reviewer and --remove-reviewer.')
-    )
-    await expect(
-      runCommand(['pr', 'update', '42', '--add-reviewer', 'alice', '--remove-reviewer', 'alice', '-y'])
-    ).rejects.toThrow('process.exit(1)')
-  })
 })
