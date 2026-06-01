@@ -681,6 +681,14 @@ describe('pr update', () => {
     expect(mockConfirm).not.toHaveBeenCalled()
   })
 
+  it('non-interactive (-y): updates description only', async () => {
+    mockGetPullRequest.mockResolvedValue(MOCK_PR)
+    mockDiffFields.mockReturnValue({ description: 'new desc' })
+    mockUpdatePullRequest.mockResolvedValue(UPDATE_RESULT)
+    await runCommand(['pr', 'update', '42', '--description', 'new desc', '-y'])
+    expect(mockUpdatePullRequest).toHaveBeenCalledWith('myworkspace', 'myrepo', 42, { description: 'new desc', title: 'feat: update' })
+  })
+
   it('confirm mode: shows summary and updates on confirm', async () => {
     mockGetPullRequest.mockResolvedValue(MOCK_PR)
     mockDiffFields.mockReturnValue({ title: 'new title' })
