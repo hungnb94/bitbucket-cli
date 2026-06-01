@@ -111,7 +111,7 @@ bitbucket pr [--workspace <ws>] [--repo <repo>] diff <id>
 bitbucket pr [--workspace <ws>] [--repo <repo>] approve <id> [-y]
 bitbucket pr [--workspace <ws>] [--repo <repo>] decline <id> [-y]
 bitbucket pr [--workspace <ws>] [--repo <repo>] comment <id> <message> [--file <path> --line <n>]
-bitbucket pr [--workspace <ws>] [--repo <repo>] update <id> [--title <text>] [--description <text>] [--target <branch>] [--add-reviewer <username>] [--remove-reviewer <username>] [--close-source-branch | --no-close-source-branch] [-y]
+bitbucket pr [--workspace <ws>] [--repo <repo>] update <id> [--title <text>] [--description <text>] [-y]
 ```
 
 ### `pr create`
@@ -220,33 +220,20 @@ With no flags, fetches the PR and prints current values with flag hints (exit 0)
 |------|-------------|
 | `--title <text>` | Update PR title (cannot be empty) |
 | `--description <text>` | Update PR description (empty string clears it) |
-| `--target <branch>` | Update destination branch (cannot be empty) |
-| `--add-reviewer <username>` | Add reviewer by Bitbucket username (repeatable) |
-| `--remove-reviewer <username>` | Remove reviewer by Bitbucket username (repeatable) |
-| `--close-source-branch` | Enable close-source-branch on merge |
-| `--no-close-source-branch` | Disable close-source-branch on merge |
 | `-y, --yes` | Skip confirmation prompt |
 
 **No flags (suggest mode):**
 ```
   Title:               feat: android in-app update
   Description:         Adds in-app update flow for Android.
-  Target:              main
-  Reviewers:           minh, an
-  Close source branch: no
 
 Run with flags to update, e.g.:
   --title "New title"
-  --add-reviewer <username>
-  --remove-reviewer <username>
-  --target <branch>
-  --close-source-branch / --no-close-source-branch
 ```
 
 **Confirm mode (with flags, no `-y`):**
 ```
   Title:   "old title" → new title
-  Reviewers: +alice  -bob
 
 ? Update PR #42? (y/N)
 ✓ PR #42 updated: https://bitbucket.org/ws/repo/pull-requests/42
@@ -271,9 +258,7 @@ Run with flags to update, e.g.:
 | `--file` without `--line` or vice versa | `✗ --file and --line must be used together.` + exit(1) |
 | Network timeout | Retry once, then fail with `Connection failed after retry.` |
 | User cancels confirm prompt (Ctrl+C) | exit(0), no error message |
-| `pr update` — empty `--title` or `--target` | `✗ --title cannot be empty.` + exit(1) |
-| `pr update` — unknown reviewer username | `✗ Reviewer not found: <username>` (all failures listed before exit) |
-| `pr update` — same username in add and remove | `✗ <username> appears in both --add-reviewer and --remove-reviewer.` + exit(1) |
+| `pr update` — empty `--title` | `✗ --title cannot be empty.` + exit(1) |
 | `pr update` — no fields changed | `Nothing to update.` + exit(0) |
 
 ---
