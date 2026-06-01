@@ -16,7 +16,7 @@ export function buildClient(): AxiosInstance {
   })
 }
 
-export function throwApiError(error: AxiosError, prId?: number): never {
+function throwApiError(error: AxiosError, prId?: number): never {
   if (error.response?.status === 401) throw new Error('401 Unauthorized')
   if (error.response?.status === 403) {
     throw new Error('403 Forbidden: token missing required scopes.')
@@ -24,11 +24,15 @@ export function throwApiError(error: AxiosError, prId?: number): never {
   if (error.response?.status === 404) {
     throw new Error(prId !== undefined ? `PR #${prId} not found.` : 'Not found.')
   }
-  if (error.response) throw new Error(`Request failed with status ${error.response.status}`)
+  if (error.response) {
+    const data = error.response.data as { error?: { message?: string } } | undefined
+    const detail = data?.error?.message
+    throw new Error(detail ? `${error.response.status}: ${detail}` : `Request failed with status ${error.response.status}`)
+  }
   throw new Error('Connection failed. Check your network connection.')
 }
 
-export function throwRetryError(error: AxiosError, prId?: number): never {
+function throwRetryError(error: AxiosError, prId?: number): never {
   if (error.response) return throwApiError(error, prId)
   throw new Error('Connection failed after retry.')
 }

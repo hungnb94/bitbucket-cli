@@ -3,9 +3,11 @@ name: bitbucket-cli
 description: >
   Complete guide for using the @hungnb94/bitbucket-cli tool to manage Bitbucket pull requests from the terminal.
   Use this skill whenever the user asks about: creating PRs, listing/viewing/approving/declining/merging PRs,
-  posting comments, diffing changes, authenticating with Bitbucket, or any `bitbucket` CLI command.
+  updating PRs (title, description), posting comments, diffing changes,
+  authenticating with Bitbucket, or any `bitbucket` CLI command.
   Trigger on phrases like: "create a PR", "list PRs", "approve PR", "view diff", "comment on PR",
-  "decline PR", "bitbucket login", "bitbucket auth", "bitbucket pull request", "bitbucket cli".
+  "decline PR", "update PR", "change PR title", "bitbucket login", "bitbucket auth",
+  "bitbucket pull request", "bitbucket cli".
   Make sure to use this skill whenever the user mentions Bitbucket and terminal/CLI/command line,
   even if they don't explicitly ask for the bitbucket-cli tool.
 ---
@@ -115,6 +117,20 @@ Options:
 - `--target` — target branch (default: auto-detected `main` or `master`)
 - `--description` — PR description
 - `-y, --yes` — skip confirmation prompt
+
+### Update PR
+```bash
+bitbucket pr update 42                          # show current title + description (no flags = read-only)
+bitbucket pr update 42 --title "New title" --yes
+bitbucket pr update 42 --description "Updated description" --yes
+```
+
+Options:
+- `--title <text>` — update PR title (cannot be empty)
+- `--description <text>` — update PR description
+- `-y, --yes` — skip confirmation prompt
+
+Without any flags the command fetches the PR and prints the current title and description — useful for a quick read-only look before making changes.
 
 ---
 

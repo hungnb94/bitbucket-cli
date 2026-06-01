@@ -1,14 +1,10 @@
 # PR Commands — Design Spec
 
-**Date:** 2026-05-30  
-**Status:** Approved  
-**Branch:** feature/pr
-
 ---
 
 ## Overview
 
-Implements the `bitbucket pr` command group: `create`, `list`, `view`, `diff`, `approve`, `decline`, `comment`. Workspace and repo are auto-detected from the git remote origin of the current directory, or can be specified explicitly via `--workspace` and `--repo` flags on the parent `pr` command. No AI review (`pr review`) in scope.
+Implements the `bitbucket pr` command group: `create`, `list`, `view`, `diff`, `approve`, `decline`, `comment`, `update`. Workspace and repo are auto-detected from the git remote origin of the current directory, or can be specified explicitly via `--workspace` and `--repo` flags on the parent `pr` command. No AI review (`pr review`) in scope.
 
 ---
 
@@ -18,13 +14,21 @@ Implements the `bitbucket pr` command group: `create`, `list`, `view`, `diff`, `
 src/
 ├── commands/
 │   ├── auth.ts           # (existing)
-│   └── pr.ts             # thin Commander wiring for 7 pr subcommands
+│   └── pr/
+│       ├── index.ts      # createPrCommand(), registers all pr subcommands
+│       ├── helpers.ts    # requireAuth, getContext, parseId
+│       ├── approve.ts, comment.ts, create.ts, decline.ts
+│       ├── diff.ts, list.ts, view.ts
+│       └── update.ts     # pr update subcommand
 ├── pr/
 │   ├── index.ts          # re-export public API
 │   ├── remote.ts         # parse git remote origin → { workspace, repo }; branch helpers
-│   └── format.ts         # table, diff highlighting, pr view layout
+│   ├── format.ts         # table, diff highlighting, pr view layout
+│   ├── types.ts          # PullRequest type
+│   └── update.ts         # UpdatePatch type, diffFields
 ├── api/
-│   └── bitbucket.ts      # extended with PR API methods
+│   ├── client.ts         # buildClient, withRetry
+│   └── pr.ts             # PR API methods
 └── index.ts              # addCommand(createPrCommand())
 ```
 
@@ -99,18 +103,19 @@ The parent `pr` command accepts two flags that apply to all subcommands:
 Each flag is independent. When both are provided, git remote inference is skipped entirely.
 
 ```
-bitbucket pr [--workspace <ws>] [--repo <repo>] create --title <title> [--description <text>] [--target <branch>] [--yes]
+bitbucket pr [--workspace <ws>] [--repo <repo>] create --title <title> [--description <text>] [--source <branch>] [--target <branch>] [--yes]
 bitbucket pr [--workspace <ws>] [--repo <repo>] list [--state open|merged|declined|all] [--limit <n>]
 bitbucket pr [--workspace <ws>] [--repo <repo>] view <id>
 bitbucket pr [--workspace <ws>] [--repo <repo>] diff <id>
 bitbucket pr [--workspace <ws>] [--repo <repo>] approve <id> [-y]
 bitbucket pr [--workspace <ws>] [--repo <repo>] decline <id> [-y]
 bitbucket pr [--workspace <ws>] [--repo <repo>] comment <id> <message> [--file <path> --line <n>]
+bitbucket pr [--workspace <ws>] [--repo <repo>] update <id> [--title <text>] [--description <text>] [-y]
 ```
 
 ### `pr create`
 
-Source branch is auto-detected from the current git branch. Target branch defaults to `main` or `master` (auto-detected).
+Source branch defaults to the current git branch but can be overridden with `--source`. Target branch defaults to `main` or `master` (auto-detected).
 
 **Options:**
 
@@ -118,6 +123,7 @@ Source branch is auto-detected from the current git branch. Target branch defaul
 |------|----------|---------|-------------|
 | `--title` | Yes | — | PR title |
 | `--description` | No | (none) | PR description |
+| `--source` | No | current branch | Source branch to create the PR from |
 | `--target` | No | auto-detect | Target branch; auto-detects `main` then `master` |
 | `--yes` / `-y` | No | false | Skip confirmation prompt (non-interactive) |
 
@@ -203,6 +209,35 @@ bitbucket pr comment 42 "nit" --file src/foo.ts --line 15
 ✓ Inline comment posted on src/foo.ts:15
 ```
 
+### `pr update <id>`
+
+With no flags, fetches the PR and prints current values with flag hints (exit 0). With flags, shows a change summary and prompts for confirmation before submitting. Use `-y` to skip the prompt.
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--title <text>` | Update PR title (cannot be empty) |
+| `--description <text>` | Update PR description (empty string clears it) |
+| `-y, --yes` | Skip confirmation prompt |
+
+**No flags (suggest mode):**
+```
+  Title:               feat: android in-app update
+  Description:         Adds in-app update flow for Android.
+
+Run with flags to update, e.g.:
+  --title "New title"
+```
+
+**Confirm mode (with flags, no `-y`):**
+```
+  Title:   "old title" → new title
+
+? Update PR #42? (y/N)
+✓ PR #42 updated: https://bitbucket.org/ws/repo/pull-requests/42
+```
+
 ---
 
 ## Error Handling
@@ -222,6 +257,8 @@ bitbucket pr comment 42 "nit" --file src/foo.ts --line 15
 | `--file` without `--line` or vice versa | `✗ --file and --line must be used together.` + exit(1) |
 | Network timeout | Retry once, then fail with `Connection failed after retry.` |
 | User cancels confirm prompt (Ctrl+C) | exit(0), no error message |
+| `pr update` — empty `--title` | `✗ --title cannot be empty.` + exit(1) |
+| `pr update` — no fields changed | `Nothing to update.` + exit(0) |
 
 ---
 
@@ -229,8 +266,9 @@ bitbucket pr comment 42 "nit" --file src/foo.ts --line 15
 
 - `tests/pr/remote.test.ts` — HTTPS and SSH URL parsing, invalid URL, non-Bitbucket remote; `getCurrentBranch()` (normal, detached HEAD); `detectDefaultTarget()` (main exists, master fallback, neither found)
 - `tests/pr/format.test.ts` — `formatPrList()` correct columns and colors, `formatDiff()` +/- line colors
-- `tests/api/bitbucket-pr.test.ts` — mocked axios for each API method; `createPullRequest()` (success, 409 conflict); general and inline comment
-- `tests/commands/pr.test.ts` — happy path per subcommand; happy path with `--yes`; not-logged-in guard; source == target; invalid arg guards
+- `tests/pr/update.test.ts` — `diffFields` (field-by-field change detection, empty patch, clear description)
+- `tests/api/bitbucket-pr.test.ts` — mocked axios for each API method; `createPullRequest()` (success, 409 conflict); `updatePullRequest()` (success, 404); general and inline comment
+- `tests/commands/pr.test.ts` — happy path per subcommand; happy path with `--yes`; not-logged-in guard; source == target; invalid arg guards; `pr update` suggest/non-interactive/confirm/cancelled/nothing-to-update/validation modes
 
 ---
 

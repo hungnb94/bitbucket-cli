@@ -1,5 +1,6 @@
 import axios from 'axios'
 import type { PullRequest, DiffStat } from '../pr/types.js'
+import type { UpdatePatch } from '../pr/update.js'
 import { buildClient, withRetry } from './client.js'
 
 type BitbucketPRResponse = {
@@ -9,9 +10,10 @@ type BitbucketPRResponse = {
   state: string
   updated_on: string
   description: string
-  reviewers: Array<{ display_name: string }>
+  reviewers: Array<{ display_name: string; uuid: string }>
   source: { branch: { name: string } }
   destination: { branch: { name: string } }
+  close_source_branch: boolean
 }
 
 type BitbucketDiffstatEntry = {
@@ -28,6 +30,8 @@ function toPullRequest(data: BitbucketPRResponse): PullRequest {
     updatedOn: data.updated_on,
     description: data.description ?? '',
     reviewerNames: (data.reviewers ?? []).map((r) => r.display_name),
+    reviewerUuids: (data.reviewers ?? []).map((r) => r.uuid),
+    closeSourceBranch: data.close_source_branch ?? false,
     sourceBranch: data.source.branch.name,
     destBranch: data.destination.branch.name,
   }
@@ -168,4 +172,20 @@ export async function createPullRequest(
       throw error
     }
   })
+}
+
+export async function updatePullRequest(
+  workspace: string,
+  repo: string,
+  id: number,
+  patch: UpdatePatch
+): Promise<{ id: number; links: { html: { href: string } } }> {
+  return withRetry(async () => {
+    const client = buildClient()
+    const response = await client.put<{ id: number; links: { html: { href: string } } }>(
+      `/repositories/${workspace}/${repo}/pullrequests/${id}`,
+      patch
+    )
+    return response.data
+  }, id)
 }

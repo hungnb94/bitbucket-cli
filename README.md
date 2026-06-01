@@ -171,6 +171,21 @@ Options:
 - `--description <text>` — PR description
 - `-y, --yes` — Skip confirmation prompt
 
+### Update
+
+```console
+$ bitbucket pr update 42
+$ bitbucket pr update 42 --title "New title" --yes
+$ bitbucket pr update 42 --description "Updated description" --yes
+```
+
+With no flags, prints current title and description. With flags, shows a change summary and prompts for confirmation before updating. Use `-y, --yes` to skip the prompt (non-interactive).
+
+Options:
+- `--title <text>` — Update PR title (cannot be empty)
+- `--description <text>` — Update PR description
+- `-y, --yes` — Skip confirmation prompt
+
 ## Agent Skill
 
 ### Install the skill

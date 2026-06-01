@@ -13,6 +13,8 @@ const mockFormatDiff = vi.fn()
 const mockGetCurrentBranch = vi.fn()
 const mockDetectDefaultTarget = vi.fn()
 const mockCreatePullRequest = vi.fn()
+const mockUpdatePullRequest = vi.fn()
+const mockDiffFields = vi.fn()
 vi.mock('../../src/pr/index.js', () => ({
   getRepoContext: mockGetRepoContext,
   formatPrList: mockFormatPrList,
@@ -38,6 +40,11 @@ vi.mock('../../src/api/pr.js', () => ({
   declinePullRequest: mockDeclinePullRequest,
   postComment: mockPostComment,
   createPullRequest: mockCreatePullRequest,
+  updatePullRequest: mockUpdatePullRequest,
+}))
+
+vi.mock('../../src/pr/update.js', () => ({
+  diffFields: mockDiffFields,
 }))
 
 const mockConfirm = vi.fn()
@@ -63,6 +70,8 @@ const MOCK_PR = {
   updatedOn: '2024-01-01T00:00:00.000Z',
   description: 'desc',
   reviewerNames: ['minh'],
+  reviewerUuids: ['{uuid-minh}'],
+  closeSourceBranch: false,
   sourceBranch: 'feature/foo',
   destBranch: 'main',
 }
@@ -77,6 +86,7 @@ beforeEach(() => {
   mockGetRepoContext.mockReturnValue(CONTEXT)
   mockGetCurrentBranch.mockReturnValue('feature/new-feature')
   mockDetectDefaultTarget.mockReturnValue('main')
+  mockDiffFields.mockReturnValue({})
 })
 
 async function runCommand(args: string[]): Promise<void> {
@@ -642,4 +652,102 @@ describe('pr create', () => {
       'myworkspace', 'flagrepo', 'feat: new', 'feature/new-feature', 'main', undefined
     )
   })
+})
+
+describe('pr update', () => {
+  const UPDATE_RESULT = {
+    id: 42,
+    links: { html: { href: 'https://bitbucket.org/ws/repo/pull-requests/42' } },
+  }
+
+  it('suggest mode: prints current PR values when no flags given', async () => {
+    mockGetPullRequest.mockResolvedValue(MOCK_PR)
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    await runCommand(['pr', 'update', '42'])
+    expect(mockGetPullRequest).toHaveBeenCalledWith('myworkspace', 'myrepo', 42)
+    expect(mockUpdatePullRequest).not.toHaveBeenCalled()
+    const output = consoleSpy.mock.calls.flat().join('\n')
+    expect(output).toContain('feat: update')
+    expect(output).toContain('Description:')
+    consoleSpy.mockRestore()
+  })
+
+  it('non-interactive (-y): calls updatePullRequest without confirmation', async () => {
+    mockGetPullRequest.mockResolvedValue(MOCK_PR)
+    mockDiffFields.mockReturnValue({ title: 'new title' })
+    mockUpdatePullRequest.mockResolvedValue(UPDATE_RESULT)
+    await runCommand(['pr', 'update', '42', '--title', 'new title', '-y'])
+    expect(mockUpdatePullRequest).toHaveBeenCalledWith('myworkspace', 'myrepo', 42, { title: 'new title' })
+    expect(mockConfirm).not.toHaveBeenCalled()
+  })
+
+  it('non-interactive (-y): updates description only', async () => {
+    mockGetPullRequest.mockResolvedValue(MOCK_PR)
+    mockDiffFields.mockReturnValue({ description: 'new desc' })
+    mockUpdatePullRequest.mockResolvedValue(UPDATE_RESULT)
+    await runCommand(['pr', 'update', '42', '--description', 'new desc', '-y'])
+    expect(mockUpdatePullRequest).toHaveBeenCalledWith('myworkspace', 'myrepo', 42, { description: 'new desc', title: 'feat: update' })
+  })
+
+  it('confirm mode: shows summary and updates on confirm', async () => {
+    mockGetPullRequest.mockResolvedValue(MOCK_PR)
+    mockDiffFields.mockReturnValue({ title: 'new title' })
+    mockUpdatePullRequest.mockResolvedValue(UPDATE_RESULT)
+    mockConfirm.mockResolvedValue(true)
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    await runCommand(['pr', 'update', '42', '--title', 'new title'])
+    expect(mockConfirm).toHaveBeenCalled()
+    expect(mockUpdatePullRequest).toHaveBeenCalledWith('myworkspace', 'myrepo', 42, { title: 'new title' })
+    consoleSpy.mockRestore()
+  })
+
+  it('confirm mode: prints Cancelled and skips update when user denies', async () => {
+    mockGetPullRequest.mockResolvedValue(MOCK_PR)
+    mockDiffFields.mockReturnValue({ title: 'new title' })
+    mockConfirm.mockResolvedValue(false)
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    await runCommand(['pr', 'update', '42', '--title', 'new title'])
+    expect(mockUpdatePullRequest).not.toHaveBeenCalled()
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Cancelled'))
+    consoleSpy.mockRestore()
+  })
+
+  it('prints "Nothing to update." when patch is empty', async () => {
+    mockGetPullRequest.mockResolvedValue(MOCK_PR)
+    mockDiffFields.mockReturnValue({})
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    await runCommand(['pr', 'update', '42', '--title', 'feat: update', '-y'])
+    expect(mockUpdatePullRequest).not.toHaveBeenCalled()
+    expect(consoleSpy).toHaveBeenCalledWith('Nothing to update.')
+    consoleSpy.mockRestore()
+  })
+
+  it('exits with 1 and error when --title is empty string', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    await expect(runCommand(['pr', 'update', '42', '--title', ''])).rejects.toThrow('process.exit(1)')
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('--title cannot be empty'))
+    errorSpy.mockRestore()
+  })
+
+  it('trims whitespace from title and description before diffing', async () => {
+    mockGetPullRequest.mockResolvedValue(MOCK_PR)
+    mockDiffFields.mockReturnValue({ title: 'trimmed', description: 'desc' })
+    mockUpdatePullRequest.mockResolvedValue({ id: 42, links: { html: { href: 'https://bitbucket.org/ws/repo/pull-requests/42' } } })
+    await runCommand(['pr', 'update', '42', '--title', '  trimmed  ', '--description', '  desc  ', '-y'])
+    expect(mockDiffFields).toHaveBeenCalledWith(MOCK_PR, { title: 'trimmed', description: 'desc' })
+  })
+
+  it('confirm mode: does not show Title line when title flag passed but unchanged', async () => {
+    mockGetPullRequest.mockResolvedValue(MOCK_PR)
+    mockDiffFields.mockReturnValue({ description: 'new desc' })
+    mockUpdatePullRequest.mockResolvedValue({ id: 42, links: { html: { href: 'https://bitbucket.org/ws/repo/pull-requests/42' } } })
+    mockConfirm.mockResolvedValue(true)
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    await runCommand(['pr', 'update', '42', '--title', 'feat: update', '--description', 'new desc'])
+    const output = consoleSpy.mock.calls.flat().join('\n')
+    expect(output).not.toContain('Title:')
+    expect(output).toContain('Description:')
+    consoleSpy.mockRestore()
+  })
+
 })
