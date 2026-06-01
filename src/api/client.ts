@@ -24,7 +24,11 @@ function throwApiError(error: AxiosError, prId?: number): never {
   if (error.response?.status === 404) {
     throw new Error(prId !== undefined ? `PR #${prId} not found.` : 'Not found.')
   }
-  if (error.response) throw new Error(`Request failed with status ${error.response.status}`)
+  if (error.response) {
+    const data = error.response.data as { error?: { message?: string } } | undefined
+    const detail = data?.error?.message
+    throw new Error(detail ? `${error.response.status}: ${detail}` : `Request failed with status ${error.response.status}`)
+  }
   throw new Error('Connection failed. Check your network connection.')
 }
 
