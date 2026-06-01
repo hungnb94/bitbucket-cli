@@ -53,7 +53,7 @@ bitbucket-cli/
 │       ├── remote.ts         # parse git remote origin → { workspace, repo }
 │       ├── format.ts         # table, diff highlighting, pr view layout
 │       ├── types.ts          # PullRequest type
-│       └── update.ts         # UpdatePatch/UpdateInput types, reviewer resolution, field diff
+│       └── update.ts         # UpdatePatch/UpdateInput types, field diff
 ├── package.json
 ├── tsconfig.json
 └── README.md
@@ -157,11 +157,7 @@ Updates an existing PR. With no flags, prints current values and flag hints. Wit
 
 Flags:
 - `--title <text>` — Update PR title (cannot be empty)
-- `--description <text>` — Update PR description (empty string clears it)
-- `--target <branch>` — Update destination branch (cannot be empty)
-- `--add-reviewer <username>` — Add a reviewer by Bitbucket username (repeatable)
-- `--remove-reviewer <username>` — Remove a reviewer by Bitbucket username (repeatable)
-- `--close-source-branch` / `--no-close-source-branch` — Toggle close-source-branch on merge
+- `--description <text>` — Update PR description
 - `-y, --yes` — Skip confirmation prompt
 
 ---

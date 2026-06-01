@@ -3,10 +3,10 @@ name: bitbucket-cli
 description: >
   Complete guide for using the @hungnb94/bitbucket-cli tool to manage Bitbucket pull requests from the terminal.
   Use this skill whenever the user asks about: creating PRs, listing/viewing/approving/declining/merging PRs,
-  updating PRs (title, description, reviewers, target branch), posting comments, diffing changes,
+  updating PRs (title, description), posting comments, diffing changes,
   authenticating with Bitbucket, or any `bitbucket` CLI command.
   Trigger on phrases like: "create a PR", "list PRs", "approve PR", "view diff", "comment on PR",
-  "decline PR", "update PR", "add reviewer", "change PR title", "bitbucket login", "bitbucket auth",
+  "decline PR", "update PR", "change PR title", "bitbucket login", "bitbucket auth",
   "bitbucket pull request", "bitbucket cli".
   Make sure to use this skill whenever the user mentions Bitbucket and terminal/CLI/command line,
   even if they don't explicitly ask for the bitbucket-cli tool.
@@ -120,31 +120,17 @@ Options:
 
 ### Update PR
 ```bash
-bitbucket pr update 42                          # show current fields + usage hints (no flags = read-only)
-
-# Full options:
-bitbucket pr update 42 \
-  --title "New title" \
-  --description "Updated description" \
-  --target develop \
-  --add-reviewer alice \
-  --add-reviewer bob \
-  --remove-reviewer charlie \
-  --close-source-branch \
-  --yes
+bitbucket pr update 42                          # show current title + description (no flags = read-only)
+bitbucket pr update 42 --title "New title" --yes
+bitbucket pr update 42 --description "Updated description" --yes
 ```
 
 Options:
 - `--title <text>` — update PR title (cannot be empty)
 - `--description <text>` — update PR description
-- `--target <branch>` — change destination branch (cannot be empty)
-- `--add-reviewer <username>` — add a reviewer (repeatable)
-- `--remove-reviewer <username>` — remove a reviewer (repeatable)
-- `--close-source-branch` — enable delete-branch-on-merge
-- `--no-close-source-branch` — disable delete-branch-on-merge
 - `-y, --yes` — skip confirmation prompt
 
-Without any flags the command fetches the PR and prints current values, then shows example flag usage — useful for a quick read-only look before making changes.
+Without any flags the command fetches the PR and prints the current title and description — useful for a quick read-only look before making changes.
 
 ---
 
