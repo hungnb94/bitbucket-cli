@@ -70,7 +70,7 @@ export function register(pr: Command): void {
 
         if (!options.yes) {
           console.log()
-          if (patch.title !== undefined) {
+          if (options.title !== undefined) {
             console.log(`  Title:       ${chalk.dim(current.title)} → ${patch.title}`)
           }
           if (patch.description !== undefined) {
