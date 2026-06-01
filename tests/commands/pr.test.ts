@@ -729,4 +729,25 @@ describe('pr update', () => {
     errorSpy.mockRestore()
   })
 
+  it('trims whitespace from title and description before diffing', async () => {
+    mockGetPullRequest.mockResolvedValue(MOCK_PR)
+    mockDiffFields.mockReturnValue({ title: 'trimmed', description: 'desc' })
+    mockUpdatePullRequest.mockResolvedValue({ id: 42, links: { html: { href: 'https://bitbucket.org/ws/repo/pull-requests/42' } } })
+    await runCommand(['pr', 'update', '42', '--title', '  trimmed  ', '--description', '  desc  ', '-y'])
+    expect(mockDiffFields).toHaveBeenCalledWith(MOCK_PR, { title: 'trimmed', description: 'desc' })
+  })
+
+  it('confirm mode: does not show Title line when title flag passed but unchanged', async () => {
+    mockGetPullRequest.mockResolvedValue(MOCK_PR)
+    mockDiffFields.mockReturnValue({ description: 'new desc' })
+    mockUpdatePullRequest.mockResolvedValue({ id: 42, links: { html: { href: 'https://bitbucket.org/ws/repo/pull-requests/42' } } })
+    mockConfirm.mockResolvedValue(true)
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    await runCommand(['pr', 'update', '42', '--title', 'feat: update', '--description', 'new desc'])
+    const output = consoleSpy.mock.calls.flat().join('\n')
+    expect(output).not.toContain('Title:')
+    expect(output).toContain('Description:')
+    consoleSpy.mockRestore()
+  })
+
 })

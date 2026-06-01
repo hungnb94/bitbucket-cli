@@ -5,12 +5,7 @@ export type UpdatePatch = {
   description?: string
 }
 
-export type UpdateInput = {
-  title?: string
-  description?: string
-}
-
-export function diffFields(current: PullRequest, input: UpdateInput): UpdatePatch {
+export function diffFields(current: PullRequest, input: UpdatePatch): UpdatePatch {
   const patch: UpdatePatch = {}
 
   if (input.title !== undefined && input.title !== current.title) {

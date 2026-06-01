@@ -3,7 +3,7 @@ import chalk from 'chalk'
 import ora from 'ora'
 import { confirm } from '@inquirer/prompts'
 import { getPullRequest, updatePullRequest } from '../../api/pr.js'
-import { diffFields, type UpdateInput } from '../../pr/update.js'
+import { diffFields, type UpdatePatch } from '../../pr/update.js'
 import { requireAuth, getContext, parseId } from './helpers.js'
 
 const truncate = (s: string, max = 80) => (s.length > max ? s.slice(0, max) + '…' : s)
@@ -53,7 +53,7 @@ export function register(pr: Command): void {
           return
         }
 
-        const input: UpdateInput = {
+        const input: UpdatePatch = {
           title: options.title?.trim(),
           description: options.description?.trim(),
         }
@@ -65,12 +65,13 @@ export function register(pr: Command): void {
           return
         }
 
+        const titleChanged = patch.title !== undefined
         // Bitbucket PUT requires title even when not changing it
         if (!patch.title) patch.title = current.title
 
         if (!options.yes) {
           console.log()
-          if (options.title !== undefined) {
+          if (titleChanged) {
             console.log(`  Title:       ${chalk.dim(current.title)} → ${patch.title}`)
           }
           if (patch.description !== undefined) {

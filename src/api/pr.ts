@@ -182,13 +182,9 @@ export async function updatePullRequest(
 ): Promise<{ id: number; links: { html: { href: string } } }> {
   return withRetry(async () => {
     const client = buildClient()
-    const { closeSourceBranch, ...rest } = patch
-    const body = closeSourceBranch !== undefined
-      ? { ...rest, close_source_branch: closeSourceBranch }
-      : rest
     const response = await client.put<{ id: number; links: { html: { href: string } } }>(
       `/repositories/${workspace}/${repo}/pullrequests/${id}`,
-      body
+      patch
     )
     return response.data
   }, id)

@@ -271,15 +271,4 @@ describe('updatePullRequest', () => {
     )
   })
 
-  it('sends full reviewer UUID array when reviewers included in patch', async () => {
-    mockPut.mockResolvedValue({
-      data: { id: 42, links: { html: { href: 'https://bitbucket.org/ws/repo/pull-requests/42' } } },
-    })
-    const patch = { reviewers: [{ uuid: '{uuid-alice}' }, { uuid: '{uuid-bob}' }] }
-    await updatePullRequest(WS, REPO, 42, patch)
-    expect(mockPut).toHaveBeenCalledWith(
-      '/repositories/myworkspace/myrepo/pullrequests/42',
-      patch
-    )
-  })
 })
