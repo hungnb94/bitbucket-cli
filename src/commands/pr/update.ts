@@ -67,7 +67,7 @@ export function register(pr: Command): void {
 
         const titleChanged = patch.title !== undefined
         // Bitbucket PUT requires title even when not changing it
-        if (!patch.title) patch.title = current.title
+        if (patch.title === undefined) patch.title = current.title
 
         if (!options.yes) {
           console.log()

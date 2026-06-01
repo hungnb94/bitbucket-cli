@@ -25,11 +25,10 @@ src/
 │   ├── remote.ts         # parse git remote origin → { workspace, repo }; branch helpers
 │   ├── format.ts         # table, diff highlighting, pr view layout
 │   ├── types.ts          # PullRequest type
-│   └── update.ts         # UpdatePatch/UpdateInput types, resolveReviewerUsernames, buildReviewerPatch, diffFields
+│   └── update.ts         # UpdatePatch type, diffFields
 ├── api/
-│   ├── client.ts         # buildClient, withRetry, throwApiError
-│   ├── pr.ts             # PR API methods
-│   └── users.ts          # getUserByUsername
+│   ├── client.ts         # buildClient, withRetry
+│   └── pr.ts             # PR API methods
 └── index.ts              # addCommand(createPrCommand())
 ```
 
@@ -267,9 +266,8 @@ Run with flags to update, e.g.:
 
 - `tests/pr/remote.test.ts` — HTTPS and SSH URL parsing, invalid URL, non-Bitbucket remote; `getCurrentBranch()` (normal, detached HEAD); `detectDefaultTarget()` (main exists, master fallback, neither found)
 - `tests/pr/format.test.ts` — `formatPrList()` correct columns and colors, `formatDiff()` +/- line colors
-- `tests/pr/update.test.ts` — `resolveReviewerUsernames` (success, aggregated errors, empty); `buildReviewerPatch` (add, remove, unchanged, duplicate throws); `diffFields` (field-by-field change detection)
-- `tests/api/bitbucket-pr.test.ts` — mocked axios for each API method; `createPullRequest()` (success, 409 conflict); `updatePullRequest()` (success, 404, reviewer UUIDs); general and inline comment
-- `tests/api/users.test.ts` — `getUserByUsername` (success, 404, non-404 error)
+- `tests/pr/update.test.ts` — `diffFields` (field-by-field change detection, empty patch, clear description)
+- `tests/api/bitbucket-pr.test.ts` — mocked axios for each API method; `createPullRequest()` (success, 409 conflict); `updatePullRequest()` (success, 404); general and inline comment
 - `tests/commands/pr.test.ts` — happy path per subcommand; happy path with `--yes`; not-logged-in guard; source == target; invalid arg guards; `pr update` suggest/non-interactive/confirm/cancelled/nothing-to-update/validation modes
 
 ---
