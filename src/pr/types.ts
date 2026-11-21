@@ -2,6 +2,8 @@ export type PullRequest = {
   id: number
   title: string
   authorName: string
+  authorUuid?: string
+  authorAccountId?: string
   state: 'OPEN' | 'MERGED' | 'DECLINED' | 'SUPERSEDED'
   updatedOn: string
   description: string

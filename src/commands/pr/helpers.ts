@@ -4,6 +4,26 @@ import { confirm } from '@inquirer/prompts'
 import { getCredentials } from '../../auth/index.js'
 import { getRepoContext, type RepoContext } from '../../pr/index.js'
 import { getPullRequest } from '../../api/pr.js'
+import { getDefaultReviewers } from '../../api/reviewers.js'
+import { getCurrentUser } from '../../api/users.js'
+import { ReviewerResolver } from '../../pr/reviewerResolver.js'
+
+export type ReviewerOptions = {
+  reviewer: string[]
+  defaultReviewers?: boolean
+}
+
+export function collectRepeatable(value: string, previous: string[]): string[] {
+  return [...previous, value]
+}
+
+export function hasReviewerFlags(options: ReviewerOptions): boolean {
+  return options.reviewer.length > 0 || options.defaultReviewers === true
+}
+
+export function buildReviewerResolver(): ReviewerResolver {
+  return new ReviewerResolver({ getDefaultReviewers, getCurrentUser })
+}
 
 export function requireAuth(): void {
   if (!getCredentials()) {

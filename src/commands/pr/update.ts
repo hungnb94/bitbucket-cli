@@ -4,14 +4,44 @@ import ora from 'ora'
 import { confirm } from '@inquirer/prompts'
 import { getPullRequest, updatePullRequest } from '../../api/pr.js'
 import { diffFields, type UpdatePatch } from '../../pr/update.js'
-import { requireAuth, getContext, parseId } from './helpers.js'
+import { reviewerLabel, sameReviewer, type ReviewerRef } from '../../pr/reviewers.js'
+import type { PullRequest } from '../../pr/types.js'
+import {
+  requireAuth,
+  getContext,
+  parseId,
+  collectRepeatable,
+  hasReviewerFlags,
+  buildReviewerResolver,
+  type ReviewerOptions,
+} from './helpers.js'
 
 const truncate = (s: string, max = 80) => (s.length > max ? s.slice(0, max) + '…' : s)
 
-interface UpdateOptions {
+interface UpdateOptions extends ReviewerOptions {
   title?: string
   description?: string
   yes?: boolean
+}
+
+async function resolveAddedReviewers(
+  workspace: string,
+  repo: string,
+  current: PullRequest,
+  options: UpdateOptions
+): Promise<{ merged: ReviewerRef[]; added: ReviewerRef[] }> {
+  const existing: ReviewerRef[] = current.reviewerUuids.map((uuid) => ({ uuid }))
+  const author = current.authorUuid || current.authorAccountId
+    ? { uuid: current.authorUuid, account_id: current.authorAccountId }
+    : undefined
+  const merged = await buildReviewerResolver().resolve(workspace, repo, {
+    explicit: options.reviewer,
+    useDefaults: options.defaultReviewers === true,
+    current: existing,
+    author,
+  })
+  const added = merged.filter((r) => !existing.some((e) => sameReviewer(e, r)))
+  return { merged, added }
 }
 
 export function register(pr: Command): void {
@@ -21,6 +51,8 @@ export function register(pr: Command): void {
     .argument('<id>', 'PR ID')
     .option('--title <text>', 'Update PR title')
     .option('--description <text>', 'Update PR description')
+    .option('--reviewer <id>', 'Add a reviewer by uuid or account_id (repeatable)', collectRepeatable, [])
+    .option('--default-reviewers', "Add the repository's default reviewers")
     .option('-y, --yes', 'Skip confirmation prompt')
     .action(async (id, options: UpdateOptions) => {
       requireAuth()
@@ -32,7 +64,8 @@ export function register(pr: Command): void {
         process.exit(1)
       }
 
-      const hasFlags = options.title !== undefined || options.description !== undefined
+      const hasFlags =
+        options.title !== undefined || options.description !== undefined || hasReviewerFlags(options)
 
       let fetchSpinner: ReturnType<typeof ora> | undefined
       let actionSpinner: ReturnType<typeof ora> | undefined
@@ -50,6 +83,7 @@ export function register(pr: Command): void {
           console.log(chalk.dim('Run with flags to update, e.g.:'))
           console.log(chalk.dim('  --title "New title"'))
           console.log(chalk.dim('  --description "New description"'))
+          console.log(chalk.dim('  --default-reviewers'))
           return
         }
 
@@ -59,6 +93,13 @@ export function register(pr: Command): void {
         }
 
         const patch = diffFields(current, input)
+
+        let addedReviewers: ReviewerRef[] = []
+        if (hasReviewerFlags(options)) {
+          const { merged, added } = await resolveAddedReviewers(workspace, repo, current, options)
+          if (added.length > 0) patch.reviewers = merged
+          addedReviewers = added
+        }
 
         if (Object.keys(patch).length === 0) {
           console.log('Nothing to update.')
@@ -78,6 +119,9 @@ export function register(pr: Command): void {
             console.log(
               `  Description: ${chalk.dim(truncate(current.description || '(none)'))} → ${truncate(patch.description || '(none)')}`
             )
+          }
+          if (addedReviewers.length > 0) {
+            console.log(`  Reviewers:   ${addedReviewers.map((r) => `+ ${reviewerLabel(r)}`).join(', ')}`)
           }
           console.log()
           const confirmed = await confirm({ message: `Update PR #${prId}?`, default: false })

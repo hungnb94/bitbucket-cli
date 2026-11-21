@@ -239,6 +239,28 @@ describe('createPullRequest', () => {
     )
   })
 
+  it('sends reviewers as uuid or account_id refs only', async () => {
+    mockPost.mockResolvedValue({
+      data: { id: 43, links: { html: { href: 'https://bitbucket.org/ws/repo/pull-requests/43' } } },
+    })
+    await createPullRequest(WS, REPO, 'feat: new', 'feature/new', 'main', undefined, [
+      { uuid: '{a}', account_id: 'a-id', displayName: 'A' },
+      { account_id: 'b-id' },
+    ])
+    expect(mockPost).toHaveBeenCalledWith(
+      '/repositories/myworkspace/myrepo/pullrequests',
+      expect.objectContaining({ reviewers: [{ uuid: '{a}' }, { account_id: 'b-id' }] })
+    )
+  })
+
+  it('omits reviewers when none are given', async () => {
+    mockPost.mockResolvedValue({
+      data: { id: 43, links: { html: { href: 'https://bitbucket.org/ws/repo/pull-requests/43' } } },
+    })
+    await createPullRequest(WS, REPO, 'feat: new', 'feature/new', 'main', undefined, [])
+    expect(mockPost.mock.calls[0][1]).not.toHaveProperty('reviewers')
+  })
+
   it('throws "A PR already exists for this branch." on 409', async () => {
     mockPost.mockRejectedValue(makeAxiosError(409))
     await expect(
@@ -248,6 +270,20 @@ describe('createPullRequest', () => {
 })
 
 describe('updatePullRequest', () => {
+  it('sends reviewers as uuid or account_id refs only', async () => {
+    mockPut.mockResolvedValue({
+      data: { id: 42, links: { html: { href: 'https://bitbucket.org/ws/repo/pull-requests/42' } } },
+    })
+    await updatePullRequest(WS, REPO, 42, {
+      title: 't',
+      reviewers: [{ uuid: '{a}', displayName: 'A' }, { account_id: 'b-id' }],
+    })
+    expect(mockPut).toHaveBeenCalledWith('/repositories/myworkspace/myrepo/pullrequests/42', {
+      title: 't',
+      reviewers: [{ uuid: '{a}' }, { account_id: 'b-id' }],
+    })
+  })
+
   it('sends PUT with patch body and returns id + url', async () => {
     mockPut.mockResolvedValue({
       data: { id: 42, links: { html: { href: 'https://bitbucket.org/ws/repo/pull-requests/42' } } },

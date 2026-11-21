@@ -47,6 +47,12 @@ vi.mock('../../src/pr/update.js', () => ({
   diffFields: mockDiffFields,
 }))
 
+const mockGetDefaultReviewers = vi.fn()
+vi.mock('../../src/api/reviewers.js', () => ({ getDefaultReviewers: mockGetDefaultReviewers }))
+
+const mockGetCurrentUser = vi.fn()
+vi.mock('../../src/api/users.js', () => ({ getCurrentUser: mockGetCurrentUser }))
+
 const mockConfirm = vi.fn()
 vi.mock('@inquirer/prompts', () => ({ confirm: mockConfirm }))
 
@@ -87,6 +93,11 @@ beforeEach(() => {
   mockGetCurrentBranch.mockReturnValue('feature/new-feature')
   mockDetectDefaultTarget.mockReturnValue('main')
   mockDiffFields.mockReturnValue({})
+  mockGetCurrentUser.mockResolvedValue({ uuid: '{me}', account_id: 'me-id', displayName: 'Me' })
+  mockGetDefaultReviewers.mockResolvedValue([
+    { uuid: '{lead}', account_id: 'lead-id', displayName: 'Lead' },
+    { uuid: '{me}', account_id: 'me-id', displayName: 'Me' },
+  ])
 })
 
 async function runCommand(args: string[]): Promise<void> {
@@ -450,7 +461,7 @@ describe('pr create', () => {
       expect.objectContaining({ message: 'Create PR?' })
     )
     expect(mockCreatePullRequest).toHaveBeenCalledWith(
-      'myworkspace', 'myrepo', 'feat: new feature', 'feature/new-feature', 'main', undefined
+      'myworkspace', 'myrepo', 'feat: new feature', 'feature/new-feature', 'main', undefined, []
     )
   })
 
@@ -462,7 +473,7 @@ describe('pr create', () => {
     await runCommand(['pr', 'create', '--title', 'feat: new feature', '--yes'])
     expect(mockConfirm).not.toHaveBeenCalled()
     expect(mockCreatePullRequest).toHaveBeenCalledWith(
-      'myworkspace', 'myrepo', 'feat: new feature', 'feature/new-feature', 'main', undefined
+      'myworkspace', 'myrepo', 'feat: new feature', 'feature/new-feature', 'main', undefined, []
     )
   })
 
@@ -473,7 +484,7 @@ describe('pr create', () => {
     })
     await runCommand(['pr', 'create', '--title', 'feat: new', '--description', 'my desc', '--yes'])
     expect(mockCreatePullRequest).toHaveBeenCalledWith(
-      'myworkspace', 'myrepo', 'feat: new', 'feature/new-feature', 'main', 'my desc'
+      'myworkspace', 'myrepo', 'feat: new', 'feature/new-feature', 'main', 'my desc', []
     )
   })
 
@@ -485,7 +496,7 @@ describe('pr create', () => {
     await runCommand(['pr', 'create', '--title', 'feat: new', '--target', 'develop', '--yes'])
     expect(mockDetectDefaultTarget).not.toHaveBeenCalled()
     expect(mockCreatePullRequest).toHaveBeenCalledWith(
-      'myworkspace', 'myrepo', 'feat: new', 'feature/new-feature', 'develop', undefined
+      'myworkspace', 'myrepo', 'feat: new', 'feature/new-feature', 'develop', undefined, []
     )
   })
 
@@ -554,7 +565,7 @@ describe('pr create', () => {
     await runCommand(['pr', 'create', '--title', 'feat: new', '--source', 'other-branch', '--yes'])
     expect(mockGetCurrentBranch).not.toHaveBeenCalled()
     expect(mockCreatePullRequest).toHaveBeenCalledWith(
-      'myworkspace', 'myrepo', 'feat: new', 'other-branch', 'main', undefined
+      'myworkspace', 'myrepo', 'feat: new', 'other-branch', 'main', undefined, []
     )
   })
 
@@ -575,7 +586,7 @@ describe('pr create', () => {
     await runCommand(['pr', 'create', '--title', 'feat: new', '--source', 'other-branch', '--yes'])
     expect(mockGetCurrentBranch).not.toHaveBeenCalled()
     expect(mockCreatePullRequest).toHaveBeenCalledWith(
-      'myworkspace', 'myrepo', 'feat: new', 'other-branch', 'main', undefined
+      'myworkspace', 'myrepo', 'feat: new', 'other-branch', 'main', undefined, []
     )
   })
 
@@ -625,7 +636,7 @@ describe('pr create', () => {
     await runCommand(['pr', '--workspace', 'flagws', '--repo', 'flagrepo', 'create', '--title', 'feat: new', '--yes'])
     expect(mockGetRepoContext).not.toHaveBeenCalled()
     expect(mockCreatePullRequest).toHaveBeenCalledWith(
-      'flagws', 'flagrepo', 'feat: new', 'feature/new-feature', 'main', undefined
+      'flagws', 'flagrepo', 'feat: new', 'feature/new-feature', 'main', undefined, []
     )
   })
 
@@ -637,7 +648,7 @@ describe('pr create', () => {
     await runCommand(['pr', '--workspace', 'flagws', 'create', '--title', 'feat: new', '--yes'])
     expect(mockGetRepoContext).toHaveBeenCalled()
     expect(mockCreatePullRequest).toHaveBeenCalledWith(
-      'flagws', 'myrepo', 'feat: new', 'feature/new-feature', 'main', undefined
+      'flagws', 'myrepo', 'feat: new', 'feature/new-feature', 'main', undefined, []
     )
   })
 
@@ -649,7 +660,7 @@ describe('pr create', () => {
     await runCommand(['pr', '--repo', 'flagrepo', 'create', '--title', 'feat: new', '--yes'])
     expect(mockGetRepoContext).toHaveBeenCalled()
     expect(mockCreatePullRequest).toHaveBeenCalledWith(
-      'myworkspace', 'flagrepo', 'feat: new', 'feature/new-feature', 'main', undefined
+      'myworkspace', 'flagrepo', 'feat: new', 'feature/new-feature', 'main', undefined, []
     )
   })
 })
@@ -750,4 +761,113 @@ describe('pr update', () => {
     consoleSpy.mockRestore()
   })
 
+})
+
+describe('pr create reviewers', () => {
+  const CREATED = { id: 43, links: { html: { href: 'https://bitbucket.org/ws/repo/pull-requests/43' } } }
+  const UUID_B = '3f2504e0-4f89-11d3-9a0c-0305e82c3301'
+
+  it('does not call reviewer APIs when no reviewer flag is given', async () => {
+    mockCreatePullRequest.mockResolvedValue(CREATED)
+    await runCommand(['pr', 'create', '--title', 'feat: new', '--yes'])
+    expect(mockGetDefaultReviewers).not.toHaveBeenCalled()
+    expect(mockGetCurrentUser).not.toHaveBeenCalled()
+  })
+
+  it('adds default reviewers without the current user', async () => {
+    mockCreatePullRequest.mockResolvedValue(CREATED)
+    await runCommand(['pr', 'create', '--title', 'feat: new', '--default-reviewers', '--yes'])
+    expect(mockGetDefaultReviewers).toHaveBeenCalledWith('myworkspace', 'myrepo')
+    expect(mockCreatePullRequest).toHaveBeenCalledWith(
+      'myworkspace', 'myrepo', 'feat: new', 'feature/new-feature', 'main', undefined,
+      [{ uuid: '{lead}', account_id: 'lead-id', displayName: 'Lead' }]
+    )
+  })
+
+  it('accepts repeated --reviewer flags together with --default-reviewers', async () => {
+    mockCreatePullRequest.mockResolvedValue(CREATED)
+    await runCommand([
+      'pr', 'create', '--title', 'feat: new', '--default-reviewers',
+      '--reviewer', UUID_B, '--reviewer', `{${UUID_B}}`, '--yes',
+    ])
+    expect(mockCreatePullRequest.mock.calls[0][6]).toEqual([
+      { uuid: '{lead}', account_id: 'lead-id', displayName: 'Lead' },
+      { uuid: `{${UUID_B}}` },
+    ])
+  })
+
+  it('shows reviewers in the preview', async () => {
+    mockConfirm.mockResolvedValue(false)
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    await runCommand(['pr', 'create', '--title', 'feat: new', '--default-reviewers'])
+    expect(consoleSpy.mock.calls.flat().join('\n')).toContain('Reviewers: Lead')
+    consoleSpy.mockRestore()
+  })
+
+  it('exits with 1 on an invalid reviewer ID without creating the PR', async () => {
+    await expect(
+      runCommand(['pr', 'create', '--title', 'feat: new', '--reviewer', 'Some Name', '--yes'])
+    ).rejects.toThrow('process.exit(1)')
+    expect(mockCreatePullRequest).not.toHaveBeenCalled()
+  })
+
+  it('exits with 1 when default reviewers cannot be fetched', async () => {
+    mockGetDefaultReviewers.mockRejectedValue(new Error('403 Forbidden: token missing required scopes.'))
+    await expect(
+      runCommand(['pr', 'create', '--title', 'feat: new', '--default-reviewers', '--yes'])
+    ).rejects.toThrow('process.exit(1)')
+    expect(mockCreatePullRequest).not.toHaveBeenCalled()
+  })
+})
+
+describe('pr update reviewers', () => {
+  const UPDATE_RESULT = { id: 42, links: { html: { href: 'https://bitbucket.org/ws/repo/pull-requests/42' } } }
+  const PR_BY_OTHER = { ...MOCK_PR, authorUuid: '{lead}', authorAccountId: 'lead-id' }
+
+  it('adds default reviewers to the existing ones and excludes the PR author', async () => {
+    mockGetPullRequest.mockResolvedValue(PR_BY_OTHER)
+    mockUpdatePullRequest.mockResolvedValue(UPDATE_RESULT)
+    await runCommand(['pr', 'update', '42', '--default-reviewers', '-y'])
+    expect(mockGetCurrentUser).not.toHaveBeenCalled()
+    expect(mockUpdatePullRequest).toHaveBeenCalledWith('myworkspace', 'myrepo', 42, {
+      title: 'feat: update',
+      reviewers: [{ uuid: '{uuid-minh}' }, { uuid: '{me}', account_id: 'me-id', displayName: 'Me' }],
+    })
+  })
+
+  it('combines a reviewer change with a title change', async () => {
+    mockGetPullRequest.mockResolvedValue(PR_BY_OTHER)
+    mockDiffFields.mockReturnValue({ title: 'new title' })
+    mockUpdatePullRequest.mockResolvedValue(UPDATE_RESULT)
+    await runCommand(['pr', 'update', '42', '--title', 'new title', '--reviewer', '{3f2504e0-4f89-11d3-9a0c-0305e82c3301}', '-y'])
+    expect(mockUpdatePullRequest.mock.calls[0][3]).toEqual({
+      title: 'new title',
+      reviewers: [{ uuid: '{uuid-minh}' }, { uuid: '{3f2504e0-4f89-11d3-9a0c-0305e82c3301}' }],
+    })
+  })
+
+  it('prints "Nothing to update." when every requested reviewer is already on the PR', async () => {
+    mockGetPullRequest.mockResolvedValue({ ...PR_BY_OTHER, reviewerUuids: ['{me}'] })
+    mockGetDefaultReviewers.mockResolvedValue([{ uuid: '{me}', account_id: 'me-id', displayName: 'Me' }])
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    await runCommand(['pr', 'update', '42', '--default-reviewers', '-y'])
+    expect(mockUpdatePullRequest).not.toHaveBeenCalled()
+    expect(consoleSpy.mock.calls.flat().join('\n')).toContain('Nothing to update.')
+    consoleSpy.mockRestore()
+  })
+
+  it('shows added reviewers in the confirm summary', async () => {
+    mockGetPullRequest.mockResolvedValue(PR_BY_OTHER)
+    mockConfirm.mockResolvedValue(false)
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    await runCommand(['pr', 'update', '42', '--default-reviewers'])
+    expect(consoleSpy.mock.calls.flat().join('\n')).toContain('Reviewers:   + Me')
+    consoleSpy.mockRestore()
+  })
+
+  it('exits with 1 on an invalid reviewer ID', async () => {
+    mockGetPullRequest.mockResolvedValue(PR_BY_OTHER)
+    await expect(runCommand(['pr', 'update', '42', '--reviewer', 'bad', '-y'])).rejects.toThrow('process.exit(1)')
+    expect(mockUpdatePullRequest).not.toHaveBeenCalled()
+  })
 })

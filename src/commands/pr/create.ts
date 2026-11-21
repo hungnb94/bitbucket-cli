@@ -4,7 +4,14 @@ import ora from 'ora'
 import { confirm } from '@inquirer/prompts'
 import { createPullRequest } from '../../api/pr.js'
 import { getCurrentBranch, detectDefaultTarget } from '../../pr/index.js'
-import { requireAuth, getContext } from './helpers.js'
+import { reviewerLabel, type ReviewerRef } from '../../pr/reviewers.js'
+import {
+  requireAuth,
+  getContext,
+  collectRepeatable,
+  hasReviewerFlags,
+  buildReviewerResolver,
+} from './helpers.js'
 
 export function register(pr: Command): void {
   pr
@@ -14,6 +21,8 @@ export function register(pr: Command): void {
     .option('--description <text>', 'PR description')
     .option('--target <branch>', 'Target branch (default: main or master)')
     .option('--source <branch>', 'Source branch (default: current branch)')
+    .option('--reviewer <id>', 'Add a reviewer by uuid or account_id (repeatable)', collectRepeatable, [])
+    .option('--default-reviewers', "Add the repository's default reviewers")
     .option('-y, --yes', 'Skip confirmation prompt')
     .action(async (options) => {
       requireAuth()
@@ -58,11 +67,22 @@ export function register(pr: Command): void {
 
       let spinner: ReturnType<typeof ora> | undefined
       try {
+        let reviewers: ReviewerRef[] = []
+        if (hasReviewerFlags(options)) {
+          spinner = ora('Resolving reviewers...').start()
+          reviewers = await buildReviewerResolver().resolve(workspace, repo, {
+            explicit: options.reviewer,
+            useDefaults: options.defaultReviewers === true,
+          })
+          spinner.stop()
+        }
+
         if (!options.yes) {
           console.log()
           console.log(`  Title:   ${options.title}`)
           console.log(`  Source:  ${sourceBranch} → ${targetBranch}`)
           console.log(`  Desc:    ${options.description ?? '(none)'}`)
+          console.log(`  Reviewers: ${reviewers.length > 0 ? reviewers.map(reviewerLabel).join(', ') : '(none)'}`)
           console.log()
           const confirmed = await confirm({
             message: 'Create PR?',
@@ -72,7 +92,9 @@ export function register(pr: Command): void {
         }
 
         spinner = ora('Creating pull request...').start()
-        const result = await createPullRequest(workspace, repo, options.title, sourceBranch, targetBranch, options.description)
+        const result = await createPullRequest(
+          workspace, repo, options.title, sourceBranch, targetBranch, options.description, reviewers
+        )
         if (!result.id || !result.links?.html?.href) throw new Error('Unexpected response from Bitbucket API.')
         spinner.succeed(`PR #${result.id} created: ${result.links.html.href}`)
       } catch (error) {
