@@ -216,3 +216,21 @@ BITBUCKET_API_TOKEN=your-token
 ```
 
 Environment variables take precedence over the config file.
+
+## Releasing
+
+Every PR into `main` bumps `version` in `package.json` itself:
+
+```console
+$ npm version <patch|minor|major> --no-git-tag-version
+```
+
+The bump follows the PR title (Conventional Commits): `feat` is minor, `fix`/`perf`/`refactor`/`revert` is patch, `!` or a `BREAKING CHANGE:` footer is major, and `docs`/`chore`/`ci`/`test`/`style`/`build` need no bump. Add the `skip-release` label to merge a releasing type without a release.
+
+GitHub Actions checks this:
+
+- **CI** runs tests and the build on Node 22 and 24.
+- **Version Check** compares the PR's version with the latest release and posts the suggested bump as a PR comment.
+- **Release** runs on every push to `main`. When the `package.json` version is not on npm yet, it publishes it, tags it, and creates a GitHub Release. Run it by hand from the Actions tab to retry a failed release.
+
+Publishing uses npm [trusted publishing](https://docs.npmjs.com/trusted-publishers), so no npm token is stored in the repository.
