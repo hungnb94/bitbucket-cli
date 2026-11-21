@@ -103,14 +103,14 @@ The parent `pr` command accepts two flags that apply to all subcommands:
 Each flag is independent. When both are provided, git remote inference is skipped entirely.
 
 ```
-bitbucket pr [--workspace <ws>] [--repo <repo>] create --title <title> [--description <text>] [--source <branch>] [--target <branch>] [--yes]
+bitbucket pr [--workspace <ws>] [--repo <repo>] create --title <title> [--description <text>] [--source <branch>] [--target <branch>] [--reviewer <id>]... [--default-reviewers] [--yes]
 bitbucket pr [--workspace <ws>] [--repo <repo>] list [--state open|merged|declined|all] [--limit <n>]
 bitbucket pr [--workspace <ws>] [--repo <repo>] view <id>
 bitbucket pr [--workspace <ws>] [--repo <repo>] diff <id>
 bitbucket pr [--workspace <ws>] [--repo <repo>] approve <id> [-y]
 bitbucket pr [--workspace <ws>] [--repo <repo>] decline <id> [-y]
 bitbucket pr [--workspace <ws>] [--repo <repo>] comment <id> <message> [--file <path> --line <n>]
-bitbucket pr [--workspace <ws>] [--repo <repo>] update <id> [--title <text>] [--description <text>] [-y]
+bitbucket pr [--workspace <ws>] [--repo <repo>] update <id> [--title <text>] [--description <text>] [--reviewer <id>]... [--default-reviewers] [-y]
 ```
 
 ### `pr create`
@@ -125,6 +125,8 @@ Source branch defaults to the current git branch but can be overridden with `--s
 | `--description` | No | (none) | PR description |
 | `--source` | No | current branch | Source branch to create the PR from |
 | `--target` | No | auto-detect | Target branch; auto-detects `main` then `master` |
+| `--reviewer` | No | (none) | Reviewer uuid or account_id; repeatable |
+| `--default-reviewers` | No | false | Add the repository's effective default reviewers, minus the author |
 | `--yes` / `-y` | No | false | Skip confirmation prompt (non-interactive) |
 
 **Interactive mode (default):**
@@ -219,6 +221,8 @@ With no flags, fetches the PR and prints current values with flag hints (exit 0)
 |------|-------------|
 | `--title <text>` | Update PR title (cannot be empty) |
 | `--description <text>` | Update PR description (empty string clears it) |
+| `--reviewer <id>` | Add a reviewer by uuid or account_id; repeatable; existing reviewers are kept |
+| `--default-reviewers` | Add the repository's default reviewers; existing reviewers are kept, the PR author is left out |
 | `-y, --yes` | Skip confirmation prompt |
 
 **No flags (suggest mode):**
@@ -259,6 +263,8 @@ Run with flags to update, e.g.:
 | User cancels confirm prompt (Ctrl+C) | exit(0), no error message |
 | `pr update` — empty `--title` | `✗ --title cannot be empty.` + exit(1) |
 | `pr update` — no fields changed | `Nothing to update.` + exit(0) |
+| `--reviewer` is not a uuid or account_id | `✗ Invalid reviewer ID "<value>". Use a uuid or an account_id.` + exit(1) |
+| Default reviewers cannot be fetched | API error message + exit(1); no PR is created or updated |
 
 ---
 
