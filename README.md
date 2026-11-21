@@ -231,6 +231,6 @@ GitHub Actions checks this:
 
 - **CI** runs tests and the build on Node 22 and 24.
 - **Version Check** compares the PR's version with the latest release and posts the suggested bump as a PR comment.
-- **Release** runs on every push to `main`. When the `package.json` version is not on npm yet, it publishes it, tags it, and creates a GitHub Release. Run it by hand from the Actions tab to retry a failed release.
+- **Release** runs on every push to `main`. When the `package.json` version is not on npm yet, it publishes it, tags it, and creates a GitHub Release. Run it by hand from the Actions tab to retry a failed release. It fails when a `feat`/`fix`/`perf`/`refactor`/`revert` change reached `main` after the current version was set, for example when two PRs bumped to the same version, and prints the bump to make in a follow-up PR.
 
 Publishing uses npm [trusted publishing](https://docs.npmjs.com/trusted-publishers), so no npm token is stored in the repository.

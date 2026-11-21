@@ -123,6 +123,15 @@ jobs:
           name: ${{ steps.version.outputs.tag }}
           generate_release_notes: true
 
+      - name: Fail when releasing changes reached main without a version bump
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SINCE: ${{ steps.target.outputs.sha }}
+        run: |
+          # Run from main's head: the publish steps may have checked out an older commit.
+          git checkout --detach "${GITHUB_SHA}"
+          node scripts/release-guard.mjs --since "${SINCE}" --until "${GITHUB_SHA}"
+
       - name: Generate release summary
         if: always()
         run: |
