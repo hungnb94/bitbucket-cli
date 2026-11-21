@@ -225,7 +225,7 @@ Every PR into `main` bumps `version` in `package.json` itself:
 $ npm version <patch|minor|major> --no-git-tag-version
 ```
 
-The bump follows the PR title (Conventional Commits): `feat` is minor, `fix`/`perf`/`refactor`/`revert` is patch, `!` or a `BREAKING CHANGE:` footer is major, and `docs`/`chore`/`ci`/`test`/`style`/`build` need no bump. Add the `skip-release` label to merge a releasing type without a release.
+The bump follows the PR title (Conventional Commits): `feat` is minor, `fix`/`perf`/`refactor`/`revert` is patch, `!` or a `BREAKING CHANGE:` footer is major, and `docs`/`chore`/`ci`/`test`/`style`/`build` need no bump. Dependabot titles runtime dependency updates `fix(deps)`, so bump the patch version on its branch before merging. Add the `skip-release` label to merge a releasing type without a release.
 
 GitHub Actions checks this:
 

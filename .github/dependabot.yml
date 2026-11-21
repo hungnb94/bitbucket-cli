@@ -10,8 +10,12 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    # Runtime dependency updates ship to users, so they are `fix` (a patch
+    # release); dev dependency updates are `build` and need no release.
     commit-message:
-      prefix: "build"
+      prefix: "fix"
+      prefix-development: "build"
+      include: "scope"
     groups:
       dev-dependencies:
         dependency-type: "development"
