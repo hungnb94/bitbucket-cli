@@ -77,6 +77,7 @@ const MOCK_PR = {
   description: 'desc',
   reviewerNames: ['minh'],
   reviewerUuids: ['{uuid-minh}'],
+  reviewerAccountIds: ['minh-id'],
   closeSourceBranch: false,
   sourceBranch: 'feature/foo',
   destBranch: 'main',
@@ -831,7 +832,7 @@ describe('pr update reviewers', () => {
     expect(mockGetCurrentUser).not.toHaveBeenCalled()
     expect(mockUpdatePullRequest).toHaveBeenCalledWith('myworkspace', 'myrepo', 42, {
       title: 'feat: update',
-      reviewers: [{ uuid: '{uuid-minh}' }, { uuid: '{me}', account_id: 'me-id', displayName: 'Me' }],
+      reviewers: [{ uuid: '{uuid-minh}', account_id: 'minh-id' }, { uuid: '{me}', account_id: 'me-id', displayName: 'Me' }],
     })
   })
 
@@ -842,7 +843,7 @@ describe('pr update reviewers', () => {
     await runCommand(['pr', 'update', '42', '--title', 'new title', '--reviewer', '{3f2504e0-4f89-11d3-9a0c-0305e82c3301}', '-y'])
     expect(mockUpdatePullRequest.mock.calls[0][3]).toEqual({
       title: 'new title',
-      reviewers: [{ uuid: '{uuid-minh}' }, { uuid: '{3f2504e0-4f89-11d3-9a0c-0305e82c3301}' }],
+      reviewers: [{ uuid: '{uuid-minh}', account_id: 'minh-id' }, { uuid: '{3f2504e0-4f89-11d3-9a0c-0305e82c3301}' }],
     })
   })
 
@@ -851,6 +852,15 @@ describe('pr update reviewers', () => {
     mockGetDefaultReviewers.mockResolvedValue([{ uuid: '{me}', account_id: 'me-id', displayName: 'Me' }])
     const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
     await runCommand(['pr', 'update', '42', '--default-reviewers', '-y'])
+    expect(mockUpdatePullRequest).not.toHaveBeenCalled()
+    expect(consoleSpy.mock.calls.flat().join('\n')).toContain('Nothing to update.')
+    consoleSpy.mockRestore()
+  })
+
+  it('does not re-add an existing reviewer passed by account_id', async () => {
+    mockGetPullRequest.mockResolvedValue({ ...PR_BY_OTHER, reviewerAccountIds: ['5b10a2844c20165700ede21f'] })
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    await runCommand(['pr', 'update', '42', '--reviewer', '5b10a2844c20165700ede21f', '-y'])
     expect(mockUpdatePullRequest).not.toHaveBeenCalled()
     expect(consoleSpy.mock.calls.flat().join('\n')).toContain('Nothing to update.')
     consoleSpy.mockRestore()

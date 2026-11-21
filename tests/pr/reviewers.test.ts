@@ -24,6 +24,11 @@ describe('parseReviewerId', () => {
     })
   })
 
+  it('lowercases an uppercase uuid', () => {
+    expect(parseReviewerId(`{${UUID.toUpperCase()}}`)).toEqual({ uuid: `{${UUID}}` })
+    expect(parseReviewerId(UUID.toUpperCase())).toEqual({ uuid: `{${UUID}}` })
+  })
+
   it('trims surrounding whitespace', () => {
     expect(parseReviewerId(`  ${UUID}  `)).toEqual({ uuid: `{${UUID}}` })
   })

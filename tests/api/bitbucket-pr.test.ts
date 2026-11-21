@@ -66,6 +66,7 @@ describe('listPullRequests', () => {
       description: 'desc',
       reviewerNames: ['minh'],
       reviewerUuids: ['{uuid-minh}'],
+      reviewerAccountIds: [undefined],
       closeSourceBranch: false,
       sourceBranch: 'feature/foo',
       destBranch: 'main',

@@ -12,7 +12,7 @@ type BitbucketPRResponse = {
   state: string
   updated_on: string
   description: string
-  reviewers: Array<{ display_name: string; uuid: string }>
+  reviewers: Array<{ display_name: string; uuid: string; account_id?: string }>
   source: { branch: { name: string } }
   destination: { branch: { name: string } }
   close_source_branch: boolean
@@ -35,6 +35,7 @@ function toPullRequest(data: BitbucketPRResponse): PullRequest {
     description: data.description ?? '',
     reviewerNames: (data.reviewers ?? []).map((r) => r.display_name),
     reviewerUuids: (data.reviewers ?? []).map((r) => r.uuid),
+    reviewerAccountIds: (data.reviewers ?? []).map((r) => r.account_id),
     closeSourceBranch: data.close_source_branch ?? false,
     sourceBranch: data.source.branch.name,
     destBranch: data.destination.branch.name,

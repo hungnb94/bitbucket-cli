@@ -11,8 +11,8 @@ const ACCOUNT_ID = /^(?:[0-9a-f]{24}|\d+:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-
 export function parseReviewerId(raw: string): ReviewerRef {
   const value = raw.trim()
   if (!value) throw new Error('Reviewer ID cannot be empty.')
-  if (BRACED_UUID.test(value)) return { uuid: value }
-  if (UUID.test(value)) return { uuid: `{${value}}` }
+  if (BRACED_UUID.test(value)) return { uuid: value.toLowerCase() }
+  if (UUID.test(value)) return { uuid: `{${value.toLowerCase()}}` }
   if (ACCOUNT_ID.test(value)) return { account_id: value }
   throw new Error(`Invalid reviewer ID "${value}". Use a uuid or an account_id.`)
 }

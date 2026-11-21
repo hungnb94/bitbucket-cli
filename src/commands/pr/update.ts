@@ -30,7 +30,10 @@ async function resolveAddedReviewers(
   current: PullRequest,
   options: UpdateOptions
 ): Promise<{ merged: ReviewerRef[]; added: ReviewerRef[] }> {
-  const existing: ReviewerRef[] = current.reviewerUuids.map((uuid) => ({ uuid }))
+  const existing: ReviewerRef[] = current.reviewerUuids.map((uuid, i) => {
+    const accountId = current.reviewerAccountIds?.[i]
+    return accountId ? { uuid, account_id: accountId } : { uuid }
+  })
   const author = current.authorUuid || current.authorAccountId
     ? { uuid: current.authorUuid, account_id: current.authorAccountId }
     : undefined

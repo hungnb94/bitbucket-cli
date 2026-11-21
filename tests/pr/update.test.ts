@@ -13,6 +13,7 @@ const BASE_PR: PullRequest = {
   description: 'desc',
   reviewerNames: ['minh'],
   reviewerUuids: ['{uuid-minh}'],
+  reviewerAccountIds: ['minh-id'],
   closeSourceBranch: false,
   sourceBranch: 'feature/foo',
   destBranch: 'main',

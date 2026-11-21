@@ -9,6 +9,7 @@ export type PullRequest = {
   description: string
   reviewerNames: string[]
   reviewerUuids: string[]
+  reviewerAccountIds: Array<string | undefined>
   closeSourceBranch: boolean
   sourceBranch: string
   destBranch: string
