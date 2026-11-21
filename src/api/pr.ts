@@ -2,15 +2,17 @@ import axios from 'axios'
 import type { PullRequest, DiffStat } from '../pr/types.js'
 import type { UpdatePatch } from '../pr/update.js'
 import { buildClient, withRetry } from './client.js'
+import { toReviewerPayload } from './reviewers.js'
+import type { ReviewerRef } from '../pr/reviewers.js'
 
 type BitbucketPRResponse = {
   id: number
   title: string
-  author: { display_name: string }
+  author: { display_name: string; uuid?: string; account_id?: string }
   state: string
   updated_on: string
   description: string
-  reviewers: Array<{ display_name: string; uuid: string }>
+  reviewers: Array<{ display_name: string; uuid: string; account_id?: string }>
   source: { branch: { name: string } }
   destination: { branch: { name: string } }
   close_source_branch: boolean
@@ -26,11 +28,14 @@ function toPullRequest(data: BitbucketPRResponse): PullRequest {
     id: data.id,
     title: data.title,
     authorName: data.author.display_name,
+    authorUuid: data.author.uuid,
+    authorAccountId: data.author.account_id,
     state: data.state as PullRequest['state'],
     updatedOn: data.updated_on,
     description: data.description ?? '',
     reviewerNames: (data.reviewers ?? []).map((r) => r.display_name),
     reviewerUuids: (data.reviewers ?? []).map((r) => r.uuid),
+    reviewerAccountIds: (data.reviewers ?? []).map((r) => r.account_id),
     closeSourceBranch: data.close_source_branch ?? false,
     sourceBranch: data.source.branch.name,
     destBranch: data.destination.branch.name,
@@ -149,7 +154,8 @@ export async function createPullRequest(
   title: string,
   sourceBranch: string,
   targetBranch: string,
-  description?: string
+  description?: string,
+  reviewers: ReviewerRef[] = []
 ): Promise<{ id: number; links: { html: { href: string } } }> {
   return withRetry(async () => {
     const client = buildClient()
@@ -159,6 +165,7 @@ export async function createPullRequest(
       destination: { branch: { name: targetBranch } },
     }
     if (description !== undefined) body.description = description
+    if (reviewers.length > 0) body.reviewers = toReviewerPayload(reviewers)
     try {
       const response = await client.post<{ id: number; links: { html: { href: string } } }>(
         `/repositories/${workspace}/${repo}/pullrequests`,
@@ -184,8 +191,13 @@ export async function updatePullRequest(
     const client = buildClient()
     const response = await client.put<{ id: number; links: { html: { href: string } } }>(
       `/repositories/${workspace}/${repo}/pullrequests/${id}`,
-      patch
+      toUpdateBody(patch)
     )
     return response.data
   }, id)
+}
+
+function toUpdateBody(patch: UpdatePatch): Record<string, unknown> {
+  const { reviewers, ...fields } = patch
+  return reviewers === undefined ? fields : { ...fields, reviewers: toReviewerPayload(reviewers) }
 }

@@ -160,15 +160,18 @@ Options:
 ```console
 $ bitbucket pr create --title "feat: add login page"
 $ bitbucket pr create --title "feat: add login page" --source feature/login --target develop --yes
+$ bitbucket pr create --title "feat: add login page" --default-reviewers --reviewer "{a1b2c3d4-e5f6-7890-abcd-ef1234567890}"
 ```
 
-Prompts for confirmation showing title, source → target branch, and description before creating. Use `-y, --yes` to skip the prompt (non-interactive).
+Prompts for confirmation showing title, source → target branch, description, and reviewers before creating. Use `-y, --yes` to skip the prompt (non-interactive).
 
 Options:
 - `--title <title>` — PR title (required)
 - `--source <branch>` — Source branch (default: current branch)
 - `--target <branch>` — Target branch (default: auto-detected `main` or `master`)
 - `--description <text>` — PR description
+- `--reviewer <id>` — Add a reviewer by uuid or account_id (repeatable)
+- `--default-reviewers` — Add the repository's default reviewers (the PR author is left out)
 - `-y, --yes` — Skip confirmation prompt
 
 ### Update
@@ -177,6 +180,7 @@ Options:
 $ bitbucket pr update 42
 $ bitbucket pr update 42 --title "New title" --yes
 $ bitbucket pr update 42 --description "Updated description" --yes
+$ bitbucket pr update 42 --default-reviewers --yes
 ```
 
 With no flags, prints current title and description. With flags, shows a change summary and prompts for confirmation before updating. Use `-y, --yes` to skip the prompt (non-interactive).
@@ -184,6 +188,8 @@ With no flags, prints current title and description. With flags, shows a change 
 Options:
 - `--title <text>` — Update PR title (cannot be empty)
 - `--description <text>` — Update PR description
+- `--reviewer <id>` — Add a reviewer by uuid or account_id (repeatable). Existing reviewers are kept.
+- `--default-reviewers` — Add the repository's default reviewers. Existing reviewers are kept; the PR author is left out.
 - `-y, --yes` — Skip confirmation prompt
 
 ## Agent Skill

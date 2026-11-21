@@ -1,8 +1,10 @@
 import type { PullRequest } from './types.js'
+import type { ReviewerRef } from './reviewers.js'
 
 export type UpdatePatch = {
   title?: string
   description?: string
+  reviewers?: ReviewerRef[]
 }
 
 export function diffFields(current: PullRequest, input: UpdatePatch): UpdatePatch {

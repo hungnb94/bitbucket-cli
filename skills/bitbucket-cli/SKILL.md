@@ -108,6 +108,8 @@ bitbucket pr create \
   --source feature/login \
   --target develop \
   --description "Adds the login page with JWT auth" \
+  --default-reviewers \
+  --reviewer "{a1b2c3d4-e5f6-7890-abcd-ef1234567890}" \
   --yes
 ```
 
@@ -116,6 +118,8 @@ Options:
 - `--source` — source branch (default: current branch)
 - `--target` — target branch (default: auto-detected `main` or `master`)
 - `--description` — PR description
+- `--reviewer <id>` — add a reviewer by uuid (`{...}`) or account_id; repeat the flag for more
+- `--default-reviewers` — add the repository's effective default reviewers; the author is left out automatically
 - `-y, --yes` — skip confirmation prompt
 
 ### Update PR
@@ -123,12 +127,17 @@ Options:
 bitbucket pr update 42                          # show current title + description (no flags = read-only)
 bitbucket pr update 42 --title "New title" --yes
 bitbucket pr update 42 --description "Updated description" --yes
+bitbucket pr update 42 --default-reviewers --yes   # add default reviewers, keep existing ones
 ```
 
 Options:
 - `--title <text>` — update PR title (cannot be empty)
 - `--description <text>` — update PR description
+- `--reviewer <id>` — add a reviewer (repeatable); existing reviewers are kept
+- `--default-reviewers` — add the repository's default reviewers; existing reviewers are kept
 - `-y, --yes` — skip confirmation prompt
+
+Reviewer IDs must be a uuid or an account_id, not a display name. Bitbucket does not add default reviewers to PRs created through the API, so pass `--default-reviewers` when you want them.
 
 Without any flags the command fetches the PR and prints the current title and description — useful for a quick read-only look before making changes.
 

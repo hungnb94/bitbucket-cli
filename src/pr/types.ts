@@ -2,11 +2,14 @@ export type PullRequest = {
   id: number
   title: string
   authorName: string
+  authorUuid?: string
+  authorAccountId?: string
   state: 'OPEN' | 'MERGED' | 'DECLINED' | 'SUPERSEDED'
   updatedOn: string
   description: string
   reviewerNames: string[]
   reviewerUuids: string[]
+  reviewerAccountIds: Array<string | undefined>
   closeSourceBranch: boolean
   sourceBranch: string
   destBranch: string

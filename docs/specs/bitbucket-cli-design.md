@@ -43,7 +43,8 @@ bitbucket-cli/
 │   ├── api/
 │   │   ├── client.ts         # buildClient, withRetry, throwApiError
 │   │   ├── pr.ts             # Bitbucket PR REST API methods
-│   │   └── users.ts          # getUserByUsername
+│   │   ├── reviewers.ts      # getDefaultReviewers (effective default reviewers, paginated)
+│   │   └── users.ts          # getCurrentUser
 │   ├── auth/
 │   │   ├── index.ts          # re-export public API
 │   │   ├── config.ts         # read/write ~/.config/bitbucket-cli/config.json
@@ -53,6 +54,8 @@ bitbucket-cli/
 │       ├── remote.ts         # parse git remote origin → { workspace, repo }
 │       ├── format.ts         # table, diff highlighting, pr view layout
 │       ├── types.ts          # PullRequest type
+│       ├── reviewers.ts      # ReviewerRef, parseReviewerId, mergeReviewers
+│       ├── reviewerResolver.ts # ReviewerResolver: explicit + default reviewers, minus author
 │       └── update.ts         # UpdatePatch/UpdateInput types, field diff
 ├── package.json
 ├── tsconfig.json
@@ -149,6 +152,8 @@ Flags:
 - `--description <text>` — PR description
 - `--source <branch>` — Source branch (default: current git branch)
 - `--target <branch>` — Target branch (default: auto-detect `main`/`master`)
+- `--reviewer <id>` — Add a reviewer by uuid or account_id (repeatable)
+- `--default-reviewers` — Add the repository's effective default reviewers, minus the author
 - `-y, --yes` — Skip confirmation prompt
 
 ### `bitbucket pr update <id>`
@@ -158,6 +163,8 @@ Updates an existing PR. With no flags, prints current values and flag hints. Wit
 Flags:
 - `--title <text>` — Update PR title (cannot be empty)
 - `--description <text>` — Update PR description
+- `--reviewer <id>` — Add a reviewer (repeatable); existing reviewers are kept
+- `--default-reviewers` — Add the repository's default reviewers; existing reviewers are kept
 - `-y, --yes` — Skip confirmation prompt
 
 ---
