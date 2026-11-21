@@ -31,11 +31,11 @@ export function sameReviewer(a: ReviewerRef, b: ReviewerRef): boolean {
 export function mergeReviewers(
   current: ReviewerRef[],
   requested: ReviewerRef[],
-  author: ReviewerRef
+  author?: ReviewerRef
 ): ReviewerRef[] {
   const merged: ReviewerRef[] = []
   for (const reviewer of [...current, ...requested]) {
-    if (sameReviewer(reviewer, author)) continue
+    if (author && sameReviewer(reviewer, author)) continue
     const index = merged.findIndex((existing) => sameReviewer(existing, reviewer))
     if (index === -1) merged.push(reviewer)
     else merged[index] = { ...merged[index], ...withoutUndefined(reviewer) }

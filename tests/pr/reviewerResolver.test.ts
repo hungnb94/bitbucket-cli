@@ -79,4 +79,30 @@ describe('ReviewerResolver', () => {
       new ReviewerResolver(port).resolve('ws', 'repo', { explicit: [], useDefaults: true })
     ).rejects.toThrow('403 Forbidden')
   })
+
+  it('keeps explicit reviewers when the token cannot read the current user', async () => {
+    const port = makePort()
+    port.getCurrentUser = vi.fn().mockRejectedValue(new Error('403 Forbidden: token missing required scopes.'))
+    const result = await new ReviewerResolver(port).resolve('ws', 'repo', {
+      explicit: [UUID_B],
+      useDefaults: false,
+    })
+    expect(result).toEqual([{ uuid: `{${UUID_B}}` }])
+  })
+
+  it('still fails on 403 when default reviewers are requested', async () => {
+    const port = makePort()
+    port.getCurrentUser = vi.fn().mockRejectedValue(new Error('403 Forbidden: token missing required scopes.'))
+    await expect(
+      new ReviewerResolver(port).resolve('ws', 'repo', { explicit: [], useDefaults: true })
+    ).rejects.toThrow('403')
+  })
+
+  it('rethrows non-403 errors from the current user lookup', async () => {
+    const port = makePort()
+    port.getCurrentUser = vi.fn().mockRejectedValue(new Error('Connection failed after retry.'))
+    await expect(
+      new ReviewerResolver(port).resolve('ws', 'repo', { explicit: [UUID_B], useDefaults: false })
+    ).rejects.toThrow('Connection failed')
+  })
 })
