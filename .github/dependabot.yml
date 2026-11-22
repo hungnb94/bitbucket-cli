@@ -16,6 +16,10 @@ updates:
       prefix: "fix"
       prefix-development: "build"
       include: "scope"
+    # Group runtime updates too: each runtime PR needs a version bump, and
+    # separate PRs all bump to the same next version and conflict.
     groups:
+      dependencies:
+        dependency-type: "production"
       dev-dependencies:
         dependency-type: "development"
