@@ -1,0 +1,93 @@
+name: Version Check
+
+# Developers bump `version` in package.json inside their PR. This gate checks that
+# bump against the latest release and keeps one sticky PR comment with the
+# suggested bump.
+#
+# pull_request_target runs the base-branch copy of this workflow and script, so it
+# can comment on fork PRs. The PR head is never checked out or executed: only its
+# package.json is read as data with `git show`.
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - edited
+      - synchronize
+      - reopened
+      - labeled
+      - unlabeled
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  version-check:
+    name: Version Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout base branch with release tags
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+
+      - name: Extract PR package.json
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          git fetch --no-tags origin "refs/pull/${PR_NUMBER}/head"
+          mkdir -p "$RUNNER_TEMP/pr"
+          git show "FETCH_HEAD:package.json" > "$RUNNER_TEMP/pr/package.json"
+
+      - name: Check version bump
+        id: check
+        continue-on-error: true
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
+        run: |
+          node scripts/version-check.mjs \
+            --base-root . \
+            --pr-package "$RUNNER_TEMP/pr/package.json" \
+            --report-file "$RUNNER_TEMP/version-report.md"
+
+      - name: Update sticky PR comment
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          report="$RUNNER_TEMP/version-report.md"
+          if [ ! -f "$report" ]; then
+            printf '### Version check: Failed\n\n- :x: The check did not produce a report. See the workflow logs.\n' > "$report"
+          fi
+          marker='<!-- version-check -->'
+          body="$(printf '%s\n%s' "$marker" "$(cat "$report")")"
+          comment_id="$(gh api --paginate "repos/${REPO}/issues/${PR_NUMBER}/comments" \
+            --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | startswith(\"${marker}\"))) | .id" | head -n 1)"
+          if [ -n "$comment_id" ]; then
+            gh api -X PATCH "repos/${REPO}/issues/comments/${comment_id}" -f body="$body" > /dev/null
+          else
+            gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" -f body="$body" > /dev/null
+          fi
+
+      - name: Fail when the version check failed
+        if: steps.check.outcome != 'success'
+        run: |
+          echo "Version check failed. See the PR comment for details."
+          exit 1

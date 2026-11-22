@@ -1,0 +1,21 @@
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "ci"
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    # Runtime dependency updates ship to users, so they are `fix` (a patch
+    # release); dev dependency updates are `build` and need no release.
+    commit-message:
+      prefix: "fix"
+      prefix-development: "build"
+      include: "scope"
+    groups:
+      dev-dependencies:
+        dependency-type: "development"

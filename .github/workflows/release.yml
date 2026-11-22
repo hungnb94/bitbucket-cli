@@ -1,0 +1,141 @@
+name: Release
+
+# The version is bumped inside each PR (see version-check.yml), so this workflow
+# never commits. On every push to main it publishes the package.json version to
+# npm when that version is not on npm yet, then tags it and creates a GitHub
+# Release. Each step checks its own state, so running it by hand retries a
+# release that failed part-way. It never bumps the version.
+#
+# Publishing uses npm trusted publishing (OIDC): no NPM_TOKEN secret. Configure it
+# once on npmjs.com > package settings > Trusted Publisher > GitHub Actions, with
+# this repository and the workflow file name `release.yml`.
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  release:
+    name: Publish to npm and Release
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Check npm supports trusted publishing
+        run: |
+          # Trusted publishing needs npm 11.5.1 or later; Node 24 ships it.
+          node -e '
+            const [a, b, c] = process.argv[1].split(".").map(Number)
+            const ok = a > 11 || (a === 11 && (b > 5 || (b === 5 && c >= 1)))
+            if (!ok) { console.error(`npm ${process.argv[1]} is older than 11.5.1`); process.exit(1) }
+          ' "$(npm --version)"
+
+      - name: Resolve version and release state
+        id: version
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          name="$(node -p 'require("./package.json").name')"
+          version="$(node -p 'require("./package.json").version')"
+          # Tags in this repo have no `v` prefix (1.0.2, 1.1.0).
+          tag="${version}"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          if [ -n "$(npm view "${name}@${version}" version 2>/dev/null)" ]; then
+            echo "${name}@${version} is already on npm."
+            echo "should_publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_publish=true" >> "$GITHUB_OUTPUT"
+          fi
+          if git rev-parse -q --verify "refs/tags/${tag}" > /dev/null; then
+            echo "should_tag=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_tag=true" >> "$GITHUB_OUTPUT"
+          fi
+          if gh release view "${tag}" > /dev/null 2>&1; then
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Find the commit that set this version
+        id: target
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          # Release the commit that set this version, not main's head: a manual retry
+          # can run after later PRs merged, and their changes do not belong here.
+          target="$(git log -1 --format=%H -S"\"version\": \"${VERSION}\"" -- package.json)"
+          echo "sha=${target:-${GITHUB_SHA}}" >> "$GITHUB_OUTPUT"
+
+      - name: Check out the release commit
+        if: steps.version.outputs.should_publish == 'true'
+        run: git checkout --detach "${{ steps.target.outputs.sha }}"
+
+      - name: Install, test, and build
+        if: steps.version.outputs.should_publish == 'true'
+        run: |
+          corepack enable
+          yarn install --frozen-lockfile
+          yarn test
+          yarn build
+
+      - name: Publish to npm
+        if: steps.version.outputs.should_publish == 'true'
+        run: npm publish --access public
+
+      - name: Create and push tag
+        if: steps.version.outputs.should_tag == 'true'
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+          TARGET: ${{ steps.target.outputs.sha }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "${TAG}" -m "Release ${TAG}" "${TARGET}"
+          git push origin "refs/tags/${TAG}"
+
+      - name: Publish GitHub Release
+        if: steps.version.outputs.should_release == 'true'
+        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.tag }}
+          generate_release_notes: true
+
+      - name: Fail when releasing changes reached main without a version bump
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SINCE: ${{ steps.target.outputs.sha }}
+        run: |
+          # Run from main's head: the publish steps may have checked out an older commit.
+          git checkout --detach "${GITHUB_SHA}"
+          node scripts/release-guard.mjs --since "${SINCE}" --until "${GITHUB_SHA}"
+
+      - name: Generate release summary
+        if: always()
+        run: |
+          echo "## Release Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: ${{ steps.version.outputs.version || 'N/A' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Release commit**: ${{ steps.target.outputs.sha || 'N/A' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Published to npm**: ${{ steps.version.outputs.should_publish || 'false' }}" >> $GITHUB_STEP_SUMMARY
