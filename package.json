@@ -48,9 +48,9 @@
     "ora": "^9.4.0"
   },
   "devDependencies": {
-    "@types/node": "^25.9.1",
-    "tsup": "^8.3.0",
-    "typescript": "^6.0.3",
-    "vitest": "^4.1.7"
+    "@types/node": "^26.6.6",
+    "tsup": "^9.0.0",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.1"
   }
 }
