@@ -66,12 +66,17 @@ function commitsBetween(since, until) {
 function prLabels(sha) {
   const repo = process.env.GITHUB_REPOSITORY
   if (!repo) return []
-  const out = execFileSync(
-    'gh',
-    ['api', `repos/${repo}/commits/${sha}/pulls`, '--jq', '.[].labels[].name'],
-    { encoding: 'utf8' }
-  )
-  return out.split('\n').filter(Boolean)
+  try {
+    const out = execFileSync(
+      'gh',
+      ['api', `repos/${repo}/commits/${sha}/pulls`, '--jq', '.[].labels[].name'],
+      { encoding: 'utf8' }
+    )
+    return out.split('\n').filter(Boolean)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    throw new Error(`Could not read the PR labels of ${sha.slice(0, 7)}: ${message}`)
+  }
 }
 
 function argValue(name) {
@@ -87,9 +92,15 @@ function main() {
     return 1
   }
   const version = JSON.parse(readFileSync('package.json', 'utf8')).version
-  // Look up labels only for commits whose title needs a release: one API call each.
-  const candidates = unreleasedChanges(commitsBetween(since, until))
-  const changes = unreleasedChanges(candidates.map((c) => ({ ...c, labels: prLabels(c.sha) })))
+  let changes
+  try {
+    // Look up labels only for commits whose title needs a release: one API call each.
+    const candidates = unreleasedChanges(commitsBetween(since, until))
+    changes = unreleasedChanges(candidates.map((c) => ({ ...c, labels: prLabels(c.sha) })))
+  } catch (error) {
+    console.error(`[ERROR] ${error instanceof Error ? error.message : String(error)}`)
+    return 1
+  }
   if (changes.length === 0) {
     console.log(`No unreleased changes after ${version}.`)
     return 0
