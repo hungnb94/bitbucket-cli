@@ -23,7 +23,7 @@ const SKIP_LABELS = new Set(['skip-release', 'no-release'])
 const BUMPS = ['major', 'minor', 'patch']
 
 const CONVENTIONAL_TITLE = /^(?<type>[a-zA-Z0-9_-]+)(?:\((?<scope>[^)]+)\))?(?<breaking>!)?:\s*(?<desc>.+)$/
-const BREAKING_FOOTER = /\bBREAKING[ -]CHANGE:\s*/
+const BREAKING_FOOTER = /^BREAKING[ -]CHANGE:\s*/m
 
 export function parseSemver(value) {
   const match = /^(\d+)\.(\d+)\.(\d+)$/.exec(String(value ?? '').trim())

@@ -26,6 +26,11 @@ describe('unreleasedChanges', () => {
     expect(guard.unreleasedChanges([commit('feat: x', ['skip-release'])])).toEqual([])
   })
 
+  it('reads a BREAKING CHANGE footer from the commit body', () => {
+    const changes = guard.unreleasedChanges([{ ...commit('fix: drop flag (#20)'), body: '* fix: drop flag\n\nBREAKING CHANGE: removed --x' }])
+    expect(guard.formatFailure('1.2.0', changes)).toContain('2.0.0 (major)')
+  })
+
   it('ignores subjects that are not Conventional Commits instead of throwing', () => {
     expect(guard.unreleasedChanges([commit('Merge pull request #5 from x/y')])).toEqual([])
   })

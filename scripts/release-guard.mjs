@@ -19,7 +19,7 @@ const BUMP_ORDER = ['patch', 'minor', 'major']
 
 function bumpOf(commit) {
   try {
-    return suggestBump({ title: commit.subject, labels: commit.labels ?? [] }).bump
+    return suggestBump({ title: commit.subject, body: commit.body ?? '', labels: commit.labels ?? [] }).bump
   } catch {
     return 'skip'
   }
@@ -50,13 +50,16 @@ export function formatFailure(version, changes) {
 }
 
 function commitsBetween(since, until) {
-  const out = execFileSync('git', ['log', '--format=%H%x09%s', `${since}..${until}`], { encoding: 'utf8' })
+  const out = execFileSync('git', ['log', '--format=%H%x09%s%x09%b%x00', `${since}..${until}`], {
+    encoding: 'utf8',
+  })
   return out
-    .split('\n')
+    .split('\0')
+    .map((record) => record.replace(/^\n+/, ''))
     .filter(Boolean)
-    .map((line) => {
-      const [sha, ...rest] = line.split('\t')
-      return { sha, subject: rest.join('\t') }
+    .map((record) => {
+      const [sha, subject, ...body] = record.split('\t')
+      return { sha, subject, body: body.join('\t') }
     })
 }
 

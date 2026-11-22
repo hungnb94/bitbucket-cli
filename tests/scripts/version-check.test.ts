@@ -18,6 +18,11 @@ describe('suggestBump', () => {
     expect(vc.suggestBump({ title: 'fix: x', body: 'BREAKING CHANGE: removed flag' }).bump).toBe('major')
   })
 
+  it('ignores BREAKING CHANGE: in the middle of a sentence', () => {
+    const body = 'This is not a BREAKING CHANGE: old flags still work.'
+    expect(vc.suggestBump({ title: 'feat: x', body }).bump).toBe('minor')
+  })
+
   it('skips on a skip-release label', () => {
     expect(vc.suggestBump({ title: 'feat: x', labels: '["skip-release"]' }).bump).toBe('skip')
   })
