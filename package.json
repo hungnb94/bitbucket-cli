@@ -1,6 +1,6 @@
 {
   "name": "@hungnb94/bitbucket-cli",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Bitbucket CLI tool for auth and PR management",
   "type": "module",
   "main": "./dist/index.js",
@@ -40,12 +40,12 @@
     "url": "https://github.com/hungnb94/bitbucket-cli/issues"
   },
   "dependencies": {
-    "@inquirer/prompts": "^8.5.1",
+    "@inquirer/prompts": "^8.8.0",
     "axios": "^1.7.0",
-    "chalk": "^5.3.0",
-    "commander": "^15.0.0",
+    "chalk": "^6.0.1",
+    "commander": "^15.1.0",
     "conf": "^15.1.0",
-    "ora": "^9.4.0"
+    "ora": "^10.0.0"
   },
   "devDependencies": {
     "@types/node": "^25.9.1",
