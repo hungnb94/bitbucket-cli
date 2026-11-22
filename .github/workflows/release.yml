@@ -39,7 +39,9 @@ jobs:
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
-          registry-url: 'https://registry.npmjs.org'
+          # No `registry-url`: it writes an .npmrc that reads ${NODE_AUTH_TOKEN},
+          # and yarn 1 fails on any unset variable in .npmrc. Trusted publishing
+          # needs no token, and npm already defaults to registry.npmjs.org.
 
       - name: Check npm supports trusted publishing
         run: |
